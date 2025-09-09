@@ -11,17 +11,8 @@
       "id": "set-tstart",
       "name": "Последняя блокировка/разблокировка",
       "matches": ["https://logs.blackrussia.online/gslogs/*"],
-      "url": "https://raw.githubusercontent.com/3eJleHKa123/br-scripts/main/baninfo.js",
+      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/refs/heads/main/baninfo.js",
       "enabledDefault": true
     },
-    {
-      "id": "forumbtns",
-      "name": "Форумный скрипт",
-      "url": "https://raw.githubusercontent.com/3eJleHKa123/br-scripts/refs/heads/main/forum-buttons.js",
-      "matches": [
-        "https://forum.blackrussia.online/threads/*"
-      ],
-      "enabledDefault": true
-    }
   ]
 }
