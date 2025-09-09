@@ -6,7 +6,7 @@
       "matches": ["https://logs.blackrussia.online/gslogs/*"],
       "url": "https://github.com/Amnyambal/brscript/blob/main/br-trade-viewer.js",
       "enabledDefault": true
-    },
+    }
     {
       "id": "set-tstart",
       "name": "Последняя блокировка/разблокировка",
