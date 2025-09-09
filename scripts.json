@@ -1,18 +1,27 @@
 {
   "scripts": [
     {
+      "id": "br-trade-viewer",
+      "name": "Содержимое трейда",
       "id": "BR-HELPER",
       "name": "[BR-HELPER] - Скрытие/показ системных сообщений в логах",
       "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/br-helper.js",
       "matches": ["https://logs.blackrussia.online/gslogs/*"],
+      "url": "https://github.com/Amnyambal/brscript/blob/main/br-trade-viewer.js",
       "enabledDefault": true
-    },
+    }
+    }, <-- ВОТ ТАК ПРАВИЛЬНО
     {
+      "id": "set-tstart",
+      "name": "Последняя блокировка/разблокировка",
+      "matches": ["https://logs.blackrussia.online/gslogs/*"],
+      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/baninfo.js",
       "id": "BR-FORUM-HELPER",
       "name": "[BR-FORUM-HELPER] - Упрощение функционала на форуме",
       "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/br-forum-helper.js",
       "matches": ["https://forum.blackrussia.online/threads/*"],
       "enabledDefault": true
+    },
     }
   ]
 }
