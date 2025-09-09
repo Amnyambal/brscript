@@ -31,6 +31,15 @@
         "https://forum.blackrussia.online/threads/*"
       ],
       "enabledDefault": true
-    }
+    },
+        {
+      "id": "forumkts",
+      "name": "Форумный скрипт для КТС",
+      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/forumkts",
+      "matches": [
+        "https://forum.blackrussia.online/threads/*"
+      ],
+      "enabledDefault": true
+    },
   ]
 }
