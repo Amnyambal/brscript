@@ -2,16 +2,32 @@
   "scripts": [
     {
       "id": "br-trade-viewer",
-      "name": "BR Trade Viewer",
+      "name": "Содержимое трейда",
       "matches": ["https://logs.blackrussia.online/gslogs/*"],
       "url": "https://raw.githubusercontent.com/3eJleHKa123/br-scripts/main/br-trade-viewer.js",
       "enabledDefault": true
     },
     {
+      "id": "formstg",
+      "name": "Формы ЧСП(Бот)",
+      "matches": ["https://logs.blackrussia.online/gslogs/*"],
+      "url": "https://raw.githubusercontent.com/3eJleHKa123/br-scripts/refs/heads/main/formstg.js",
+      "enabledDefault": true
+    },
+    {
       "id": "set-tstart",
-      "name": "Ban Info",
+      "name": "Последняя блокировка/разблокировка",
       "matches": ["https://logs.blackrussia.online/gslogs/*"],
       "url": "https://raw.githubusercontent.com/3eJleHKa123/br-scripts/main/baninfo.js",
+      "enabledDefault": true
+    },
+    {
+      "id": "forumbtns",
+      "name": "Форумный скрипт(в разработке)",
+      "url": "https://raw.githubusercontent.com/3eJleHKa123/br-scripts/refs/heads/main/forum-buttons.js",
+      "matches": [
+        "https://forum.blackrussia.online/threads/*"
+      ],
       "enabledDefault": true
     }
   ]
