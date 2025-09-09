@@ -11,7 +11,7 @@
       "id": "set-tstart",
       "name": "Последняя блокировка/разблокировка",
       "matches": ["https://logs.blackrussia.online/gslogs/*"],
-      "url": "https://raw.githubusercontent.com/3eJleHKa123/br-scripts/main/baninfo.js",
+      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/baninfo.js",
       "enabledDefault": true
     },
     {
