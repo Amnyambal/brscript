@@ -22,6 +22,15 @@
         "https://forum.blackrussia.online/threads/*"
       ],
       "enabledDefault": true
+    },
+    {
+      "id": "forumrus",
+      "name": "AI граматика",
+      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/forum-buttons.js",
+      "matches": [
+        "https://forum.blackrussia.online/threads/*"
+      ],
+      "enabledDefault": true
     }
   ]
 }
