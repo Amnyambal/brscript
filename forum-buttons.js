@@ -1,262 +1,304 @@
-// forum-buttons.js (адаптированный из ddd.txt для расширения)
+// ==UserScript==
+// @name         Technical Specialist
+// @namespace    https://forum.blackrussia.online
+// @version      3.1
+// @description  Для технического отдела и комфортной модерации разделов
+// @author       Raf_Piatigorsky (доработано)
+// @match        https://forum.blackrussia.online/*
+// @grant        none
+// @license      MIT
+// @collaborator Raf_Piatigorsky
+// @icon         https://avatars.mds.yandex.net/i?id=2e5b30b9c5657d05784ad9708e8c9b3597a65679-12890014-images-thumbs&n=13
+// ==/UserScript==
 
 (function () {
     'use strict';
 
-    // --- Настройки и константы из ddd.txt ---
-    console.log('[ForumBtns Ext] Script started');
+    // Ожидаем полной загрузки страницы и всех её компонентов (jQuery и XF)
+    const onPageReady = () => {
+        const UNACCEPT_PREFIX = 4; // префикс отказано
+        const ODOBRENO_PREFIX = 8; // префикс одобрено
+        const PIN_PREFIX = 2; //  префикс закрепить
+        const COMMAND_PREFIX = 10; // префикс команде проекта
+        const CLOSE_PREFIX = 7; // префикс закрыто
+        const DECIDED_PREFIX = 6; // префикс решено
+        const TECHADM_PREFIX = 13 // префикс техническому специалисту
+        const WATCHED_PREFIX = 9; // префикс рассмотрено
+        const WAIT_PREFIX = 14; // префикс ожидание (для переноса в баг-трекер)
+        const NO_PREFIX = 0; // префикс отсутствует
 
-    const UNACCEPT_PREFIX = 4;
-    const PIN_PREFIX = 2;
-    const COMMAND_PREFIX = 10;
-    const CLOSE_PREFIX = 7;
-    const DECIDED_PREFIX = 6;
-    const TECHADM_PREFIX = 13;
-    const WATCHED_PREFIX = 9;
-    const WAIT_PREFIX = 14;
-    const NO_PREFIX = 0;
-
-    // --- Кнопки из ddd.txt ---
-    // Взял только те, у которых status: true
-    const buttons = [
-        {
-            title: 'Команде проекта',
-            color: '',
-            content: "[CENTER][COLOR=rgb(209, 213, 216)][FONT=Verdana][SIZE=15px][CENTER]{{ greeting }}, уважаемый [/COLOR][COLOR=rgb(255, 204, 0)]{{ user.name }}[/COLOR].[/CENTER]<br><br>" +
+        const buttons = [
+            {
+                title: 'Приветствие',
+                content:
+                "[CENTER][COLOR=rgb(209, 213, 216)][FONT=Verdana][SIZE=15px][CENTER]{{ greeting }}, уважаемый [/COLOR][COLOR=rgb(255, 204, 0)]{{ user.name }}[/COLOR].[/CENTER]<br><br>" +
+                '[CENTER] текст [/CENTER][/FONT]',
+            },
+            {
+                title: 'Дубликат',
+                content:
+                "[CENTER][COLOR=rgb(209, 213, 216)][FONT=Verdana][SIZE=15px][CENTER]{{ greeting }}, уважаемый [/COLOR][COLOR=rgb(255, 204, 0)]{{ user.name }}[/COLOR].[/CENTER][/CENTER]<br><br>" +
+                "[CENTER]Данная тема является дубликатом вашей предыдущей темы, ссылка на тему - <br>Пожалуйста, <b>прекратите создавать идентичные или похожие темы - иначе Ваш форумный аккаунт может быть заблокирован</b>.<br><br>" +
+                '[B][I][FONT=verdana][COLOR=rgb(255, 0, 0)]Закрыто[/COLOR][/FONT][/I][/B]',
+            },
+            {
+                title: 'ᅠ ᅠ ᅠ ᅠ ᅠ ᅠ ᅠ ᅠ ᅠ ᅠ ᅠ ᅠᅠ ᅠ ЖАЛОБЫ НА ИГРОКОВ ᅠ ᅠ ᅠᅠ ᅠ ᅠ ᅠ ᅠᅠ ᅠ ᅠ ᅠ ᅠ ᅠ ᅠ ᅠ     ',
+                dpstyle: 'oswald: 3px;     color: #fff; background: #db2309; box-shadow: 0 0 2px 0 rgba(0,0,0,0.14),0 2px 2px 0 rgba(0,0,0,0.12),0 1px 3px 0 rgba(0,0,0,0.2); border: none; border-color: #f53317',
+            },
+            {
+                title: 'Игрок будет заблокирован',
+                color: '',
+                content:
+                "[CENTER][COLOR=rgb(209, 213, 216)][FONT=Verdana][SIZE=15px][CENTER]{{ greeting }}, уважаемый [/COLOR][COLOR=rgb(255, 204, 0)]{{ user.name }}[/COLOR].[/CENTER]<br><br>" +
                 '[CENTER][img]https://i.postimg.cc/tgD5Xwhj/1618083711121.png[/img][/CENTER]<br>' +
-                '[CENTER]<u>Создавать подобные темы не нужно</u>.<br>[CENTER][COLOR=rgb(255, 255, 0)]На рассмотрении[/COLOR][/CENTER][/FONT][/SIZE]',
-            prefix: PIN_PREFIX, // Используем реальный префикс "Закрепить"
-            status: true,
-        }
-        // Добавь сюда другие кнопки с status: true, если нужно
-        // Например, "ПРАВИЛА РАЗДЕЛА" тоже имеет status: false в оригинале, так что не добавляю
-    ].filter(b => b.status); // На всякий случай фильтруем
+                "[CENTER][SIZE=4][FONT=Verdana]После проверки доказательств и системы логирования вердикт:<br><br>[FONT=verdana]Игрок будет заблокирован[/CENTER]<br><br>" +
+                '[CENTER][img]https://i.postimg.cc/tgD5Xwhj/1618083711121.png[/img][/CENTER]<br>' +
+                "[CENTER][I][FONT=verdana][COLOR=rgb(0, 255, 0)][B]Одобрено[/B][/COLOR][/FONT][/I][/CENTER]",
+                prefix: ODOBRENO_PREFIX,
+                status: false
+            },
+            {
+                title: 'Игрок не будет заблокирован',
+                color: '',
+                content:
+                "[CENTER][COLOR=rgb(209, 213, 216)][FONT=Verdana][SIZE=15px][CENTER]{{ greeting }}, уважаемый [/COLOR][COLOR=rgb(255, 204, 0)]{{ user.name }}[/COLOR].[/CENTER]<br><br>" +
+                '[CENTER][img]https://i.postimg.cc/tgD5Xwhj/1618083711121.png[/img][/CENTER]<br>' +
+                "[CENTER][SIZE=4][FONT=Verdana]После проверки доказательств и системы логирования вердикт:<br><br>Доказательств недостаточно для блокировки игрока[/CENTER]<br><br>" +
+                '[CENTER][img]https://i.postimg.cc/tgD5Xwhj/1618083711121.png[/img][/CENTER]<br>' +
+                "[CENTER][B][I][FONT=verdana][COLOR=rgb(255, 0, 0)]Отказано[/COLOR][/FONT][/I][/B][/CENTER]",
+                prefix: UNACCEPT_PREFIX,
+                status: false
+            },
+        ];
 
-    // --- Функции-утилиты ---
-    function getUserData() {
-        console.log('[ForumBtns Ext] Getting user data...');
-        // Простая попытка найти имя пользователя в DOM
-        // На форуме BR это обычно .p-navgroup-user-link .avatarWrapper span
-        const userLink = document.querySelector('.p-navgroup-user-link');
-        const userNameElement = userLink ? userLink.querySelector('.avatarWrapper span') : null;
-        const userName = userNameElement ? userNameElement.textContent.trim() : 'Гость';
-        console.log('[ForumBtns Ext] Found username:', userName);
+        function main() {
+            // Если мы не в теме, а на главной странице форума или в списке тем, то скрипт не должен работать
+            if (!$('.p-title-value').length) return;
 
-        const hours = new Date().getHours();
-        let greeting;
-        if (hours >= 6 && hours < 12) greeting = 'Доброе утро';
-        else if (hours >= 12 && hours < 17) greeting = 'Добрый день';
-        else if (hours >= 17 && hours < 23) greeting = 'Добрый вечер';
-        else greeting = 'Доброй ночи';
-        console.log('[ForumBtns Ext] Determined greeting:', greeting);
+            // Поиск информации о теме
+            const threadData = getThreadData();
+            if (!threadData) return; // Если не удалось получить данные, выходим
 
-        return { name: userName, greeting };
-    }
+            // Добавление кнопок
+            addButton('На рассмотрение', 'pin', 'border-radius: 20px; margin-right: 11px; border: 2px solid; border-color: rgb(255, 165, 0);');
+            addButton('КП', 'teamProject', 'border-radius: 20px; margin-right: 100x; border: 2px solid; border-color: rgb(255, 255, 0);');
+            addButton('Рассмотрено', 'watched', 'border-radius: 13px; margin-right: 5px; border: 2px solid; border-color: rgb(0, 255, 0);');
+            addButton('Отказано', 'unaccept', 'border-radius: 13px; margin-right: 5px; border: 2px solid; border-color: rgb(255, 0, 0);');
+            addButton('Решено', 'decided', 'border-radius: 13px; margin-right: 5px; border: 2px solid; border-color: rgb(0, 255, 0);');
+            addButton('Закрыто', 'closed', 'border-radius: 13px; margin-right: 5px; border: 2px solid; border-color: rgb(255, 0, 0);');
+            addButton('Тех. спецу', 'techspec', 'border-radius: 13px; margin-right: 5px; border: 2px solid; border-color: rgb(0, 0, 255);');
+            addButton('Одобрено', 'odobreno', 'border-radius: 13px; margin-right: 5px; border: 2px solid; border-color: rgb(128, 255, 128);');
+            addAnswers();
 
-    function generateContent(template, userData) {
-        console.log('[ForumBtns Ext] Generating content from template...');
-        // Простая замена шаблонов
-        return template.replace(/{{\s*user\.name\s*}}/gi, userData.name)
-                      .replace(/{{\s*greeting\s*}}/gi, userData.greeting);
-    }
+            // Назначение событий на кнопки
+            $('button#unaccept').click(() => editThreadData(UNACCEPT_PREFIX, false));
+            $('button#pin').click(() => editThreadData(PIN_PREFIX, true));
+            $('button#teamProject').click(() => editThreadData(COMMAND_PREFIX, true));
+            $('button#watched').click(() => editThreadData(WATCHED_PREFIX, false));
+            $('button#decided').click(() => editThreadData(DECIDED_PREFIX, false));
+            $('button#closed').click(() => editThreadData(CLOSE_PREFIX, false));
+            $('button#odobreno').click(() => editThreadData(ODOBRENO_PREFIX, false));
+            $('button#techspec').click(() => editThreadData(TECHADM_PREFIX, true));
 
-    function addButton(title, actionName, style = '') {
-        console.log(`[ForumBtns Ext] Adding button '${title}'...`);
-        // Ждем появления контейнера для кнопок (как в оригинале)
-        const checkExist = setInterval(function () {
-            // Ищем контейнер, куда добавляются кнопки. На странице темы это обычно рядом с быстрым ответом.
-            // Классы могут меняться, подбираем наиболее стабильный.
-            // В ddd.txt используется '.block-container.lbContainer'. Проверим.
-            const quickReply = document.querySelector('.block-container.lbContainer');
-            if (quickReply) {
-                console.log('[ForumBtns Ext] Found quick reply container.');
-                clearInterval(checkExist);
-
-                // Создаем контейнер для наших кнопок
-                const buttonContainer = document.createElement('div');
-                buttonContainer.id = `custom-button-container-${actionName}`;
-                buttonContainer.style.cssText = 'display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; padding: 10px; border-top: 1px solid #eee;';
-
-                // Вставляем контейнер ПОСЛЕ блока быстрого ответа
-                quickReply.parentNode.insertBefore(buttonContainer, quickReply.nextSibling);
-
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.textContent = title;
-                btn.className = 'button--link button'; // Классы кнопок XF
-                if (style) {
-                    btn.style.cssText = style;
-                }
-                btn.dataset.action = actionName; // data-action для идентификации
-
-                // Обработчик клика
-                btn.addEventListener('click', () => {
-                    console.log(`[ForumBtns Ext] Button '${title}' clicked.`);
-                    // Находим данные кнопки по названию
-                    const btnData = buttons.find(b => b.title === title);
-                    if (btnData) {
-                        console.log('[ForumBtns Ext] Button data found, filling form.');
-                        fillEditForm(btnData);
-                    } else {
-                        console.error('[ForumBtns Ext] Button data NOT found for:', title);
-                    }
+            $(`button#selectAnswers`).click(() => {
+                XF.alert(buttonsMarkup(buttons), null, 'Выберите ответ:');
+                buttons.forEach((btn, id) => {
+                    $(`button#answers-${id}`).click(() => {
+                        const shouldSend = (buttons[id].prefix !== undefined && buttons[id].status !== undefined);
+                        pasteContent(id, threadData, shouldSend);
+                    });
                 });
+            });
+        }
 
-                buttonContainer.appendChild(btn);
-                console.log(`[ForumBtns Ext] Button '${title}' added successfully.`);
-            } else {
-                console.log('[ForumBtns Ext] Quick reply container not found yet, waiting...');
+        function addButton(name, id, style = "") {
+            const replyButton = $('.button--icon--reply');
+            if (replyButton.length) {
+                replyButton.before(
+                    `<button type="button" class="button button--primary rippleButton" id="${id}" style="${style}">${name}</button>`
+                );
             }
-        }, 100); // Проверяем каждые 100мс
+        }
 
-        // Таймаут, чтобы не висело вечно
-        setTimeout(() => {
-            clearInterval(checkExist);
-            console.log(`[ForumBtns Ext] Timeout adding button '${title}'.`);
-        }, 5000); // 5 секунд
-    }
+        function addAnswers() {
+            const replyButton = $('.button--icon--reply');
+            if (replyButton.length) {
+                replyButton.after(`<button type="button" class="button--cta uix_quickReply--button button button--icon button--icon--write rippleButton" id="selectAnswers" style="oswald: 3px; margin-left: 5px; margin-top: 1px; border-radius: 13px; background-color: #FF4500; border-color: #E6E6FA">Ответы</button>`);
+            }
+        }
 
-    async function fillEditForm(buttonData) {
-        console.log('[ForumBtns Ext] Filling edit form...');
-        try {
-            // 1. Получаем данные пользователя
-            const userData = getUserData();
-            console.log('[ForumBtns Ext] User data:', userData);
+        function buttonsMarkup(buttons) {
+            return `<div class="select_answer">${buttons
+                .map(
+                (btn, i) =>
+                `<button id="answers-${i}" class="button--primary button rippleButton" style="margin:4px; border-radius: 13px; ${btn.dpstyle || ''}"><span class="button-text">${btn.title}</span></button>`,
+            )
+                .join('')}</div>`;
+        }
 
-            // 2. Генерируем контент
-            const finalContent = generateContent(buttonData.content, userData);
-            console.log('[ForumBtns Ext] Final content (first 200 chars):', finalContent.substring(0, 200));
-
-            // 3. Открываем форму редактирования (имитируем клик)
-            console.log('[ForumBtns Ext] Looking for edit button...');
-            const editButton = document.querySelector('a[href*="/edit"]');
-            if (!editButton) {
-                const errorMsg = 'Кнопка редактирования темы не найдена!';
-                console.error('[ForumBtns Ext] Error:', errorMsg);
-                alert(errorMsg);
+        function pasteContent(id, data = {}, send = false) {
+            if (typeof Handlebars === 'undefined') {
+                console.error('Handlebars.js не загружен!');
+                alert('Ошибка: библиотека для шаблонов не загружена. Попробуйте обновить страницу.');
                 return;
             }
-            console.log('[ForumBtns Ext] Edit button found, clicking...');
-            editButton.click();
+            const template = Handlebars.compile(buttons[id].content);
+            const editor = $('.fr-element.fr-view');
 
-            // 4. Ждем загрузки формы редактирования
-            let attempts = 0;
-            const maxAttempts = 50; // Максимум 5 секунд ожидания
-            console.log('[ForumBtns Ext] Waiting for edit form...');
-            const waitForForm = setInterval(() => {
-                attempts++;
-                console.log(`[ForumBtns Ext] Form check attempt ${attempts}/${maxAttempts}`);
-                const form = document.querySelector('form[action*="/edit"]');
-                const prefixSelect = form ? form.querySelector('select[name="prefix_id"]') : null;
-                const messageEditor = form ? tinymce?.activeEditor : null; // Для TinyMCE
+            if (editor.length) {
+                if (editor.find('p').text() === '') editor.find('p').empty();
+                $('span.fr-placeholder').empty();
+                editor.find('p').append(template(data));
+                $('a.overlay-titleCloser').trigger('click');
 
-                // Альтернатива, если TinyMCE не доступен сразу или используется другая система
-                const textareaEditor = form ? form.querySelector('textarea[data-editor]') : null;
-
-                if (form && (prefixSelect || messageEditor || textareaEditor)) {
-                    console.log('[ForumBtns Ext] Edit form and components found.');
-                    clearInterval(waitForForm);
-
-                    // 5. Заполняем форму
-
-                    // Префикс
-                    if (prefixSelect && buttonData.prefix) {
-                        console.log(`[ForumBtns Ext] Setting prefix to ${buttonData.prefix}`);
-                        prefixSelect.value = buttonData.prefix;
-                        // Триггерим событие change, если слушатели зависят от него
-                        prefixSelect.dispatchEvent(new Event('change', { bubbles: true }));
-                        console.log('[ForumBtns Ext] Prefix set.');
-                    } else if (buttonData.prefix) {
-                         console.warn('[ForumBtns Ext] Prefix select not found or prefix ID is invalid.');
-                    }
-
-                    // Сообщение
-                    if (messageEditor) {
-                        // Если используется TinyMCE
-                        console.log('[ForumBtns Ext] Filling content via TinyMCE.');
-                        messageEditor.setContent(finalContent);
-                        console.log('[ForumBtns Ext] Content set via TinyMCE.');
-                    } else if (textareaEditor) {
-                        // Если используется обычный textarea (редко на XF)
-                        console.log('[ForumBtns Ext] Filling content via textarea.');
-                        textareaEditor.value = finalContent;
-                        textareaEditor.dispatchEvent(new Event('input', { bubbles: true }));
-                        console.log('[ForumBtns Ext] Content set via textarea.');
-                    } else {
-                        // Если редактор не найден, попробуем вставить в скрытое поле или предупредить
-                        console.warn('[ForumBtns Ext] Message editor not found or not ready.');
-                        alert('Не удалось автоматически вставить сообщение. Пожалуйста, вставьте его вручную.');
-                        // Можно открыть prompt и попросить пользователя вставить
-                        // const manualContent = prompt("Скопируйте и вставьте это сообщение в редактор:", finalContent);
-                    }
-
-                    // 6. Авто-сохранение/сабмит (ОПЦИОНАЛЬНО, может быть небезопасно)
-                    // Раскомментируй, если хочешь, чтобы форма сама отправлялась (но будь осторожен!)
-                    /*
-                    const submitBtn = form.querySelector('button[type="submit"]');
-                    if (submitBtn) {
-                        setTimeout(() => {
-                            if (confirm(`Вы уверены, что хотите применить шаблон "${buttonData.title}"?`)) {
-                                submitBtn.click();
-                            }
-                        }, 300); // Небольшая задержка
-                    }
-                    */
-
-                } else if (attempts > maxAttempts) {
-                    clearInterval(waitForForm);
-                    const errorMsg = 'Форма редактирования не загрузилась или компоненты не найдены.';
-                    console.error('[ForumBtns Ext] Error:', errorMsg);
-                    alert(errorMsg);
-                } else {
-                     console.log('[ForumBtns Ext] Form or components not ready yet...');
+                if (send === true) {
+                    editThreadData(buttons[id].prefix, buttons[id].status);
+                    $('.button--icon.button--icon--reply.rippleButton').trigger('click');
                 }
-            }, 100);
-
-        } catch (error) {
-            console.error('[ForumBtns Ext] Error in fillEditForm:', error);
-            alert('Произошла ошибка при заполнении формы: ' + error.message);
+            }
         }
-    }
 
-    // --- Инициализация ---
-    function init() {
-        console.log('[ForumBtns Ext] Initializing...');
-        // Проверяем URL (как в юзерскрипте)
-        if (!/^https:\/\/forum\.blackrussia\.online\/threads\/.*$/.test(window.location.href)) {
-            console.log('[ForumBtns Ext] Not on a thread page, exiting.');
-            return;
+        function getThreadData() {
+            const authorLink = $('a.username').first();
+            if (!authorLink.length) {
+                return null;
+            }
+
+            const authorID = authorLink.attr('data-user-id');
+            const authorName = authorLink.html();
+            const hours = new Date().getHours();
+
+            return {
+                user: {
+                    id: authorID,
+                    name: authorName,
+                    mention: `[USER=${authorID}]${authorName}[/USER]`,
+                },
+                greeting: () =>
+                4 < hours && hours <= 11 ? 'Доброе утро' :
+                11 < hours && hours <= 15 ? 'Добрый день' :
+                15 < hours && hours <= 21 ? 'Добрый вечер' : 'Доброй ночи',
+            };
         }
-        console.log('[ForumBtns Ext] On a thread page.');
 
-        // Добавляем кнопки
-        if (buttons.length > 0) {
-            console.log(`[ForumBtns Ext] Found ${buttons.length} active buttons to add.`);
-            buttons.forEach((btnData, index) => {
-                // Добавляем каждую кнопку с небольшой задержкой, чтобы DOM успел обновиться
-                setTimeout(() => {
-                    addButton(btnData.title, `action_${index}`, btnData.color);
-                }, index * 100);
-            });
-        } else {
-            console.log('[ForumBtns Ext] No active buttons found.');
+        function editThreadData(prefix, pin = false, may_lens = true) {
+            const threadTitle = $('.p-title-value')[0].lastChild.textContent;
+            const postData = {
+                prefix_id: prefix,
+                title: threadTitle,
+                _xfToken: XF.config.csrf,
+                _xfRequestUri: document.URL.split(XF.config.url.fullBase)[1],
+                _xfWithData: 1,
+                _xfResponseType: 'json',
+            };
+
+            if (pin) {
+                postData.discussion_open = 1;
+                postData.sticky = 1;
+            }
+
+            fetch(`${document.URL}edit`, {
+                method: 'POST',
+                body: getFormData(postData),
+            }).then(() => location.reload());
+
+            if (may_lens === true) {
+                if (prefix == WATCHED_PREFIX || prefix == CLOSE_PREFIX || prefix == DECIDED_PREFIX) {
+                    moveThread(prefix, 230);
+                }
+                if (prefix == WAIT_PREFIX) {
+                    moveThread(prefix, 917);
+                }
+            }
         }
-        console.log('[ForumBtns Ext] Initialization complete.');
-    }
 
-    // --- Запуск ---
-    // Ждем полной загрузки DOM (как в юзерскрипте)
-    if (document.readyState === 'loading') {
-        console.log('[ForumBtns Ext] DOM not ready, adding listener.');
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        // DOM уже загружен
-        console.log('[ForumBtns Ext] DOM ready, calling init.');
-        init();
-    }
+        function moveThread(prefix, type) {
+            const threadTitle = $('.p-title-value')[0].lastChild.textContent;
+            fetch(`${document.URL}move`, {
+                method: 'POST',
+                body: getFormData({
+                    prefix_id: prefix,
+                    title: threadTitle,
+                    target_node_id: type,
+                    redirect_type: 'none',
+                    notify_watchers: 1,
+                    starter_alert: 1,
+                    starter_alert_reason: "",
+                    _xfToken: XF.config.csrf,
+                    _xfRequestUri: document.URL.split(XF.config.url.fullBase)[1],
+                    _xfWithData: 1,
+                    _xfResponseType: 'json',
+                }),
+            }).then(() => location.reload());
+        }
 
-    // На случай, если страница загружается динамически (SPA), можно использовать MutationObserver
-    // Но для XenForo это обычно не нужно. Оставим простой вариант.
-    console.log('[ForumBtns Ext] Script setup complete.');
+        function getFormData(data) {
+            const formData = new FormData();
+            Object.entries(data).forEach(i => formData.append(i[0], i[1]));
+            return formData;
+        }
+
+        // --- Запуск основной логики скрипта ---
+        // Загрузка скрипта для обработки шаблонов
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js';
+        script.onload = main; // Запускаем основную функцию только после загрузки Handlebars
+        document.body.appendChild(script);
+
+        // --- Нижние кнопки навигации ---
+        const bgButtonsContainer = document.querySelector(".p-body-main .p-body-content");
+        if (bgButtonsContainer) {
+
+            const buttonConfig = (text, href) => {
+                const button = document.createElement("button");
+                button.style.color = "#FFFFFF";
+                button.style.backgroundColor = "#212529";
+                button.style.borderColor = "#6c757d";
+                button.style.borderRadius = "13px";
+                button.style.borderStyle = "solid";
+                button.style.borderWidth = "1px";
+                button.style.padding = "0.5rem 1rem";
+                button.style.fontSize = "1rem";
+                button.style.cursor = "pointer";
+                button.style.transition = "background-color 0.3s ease";
+                button.style.margin = "5px";
+                button.textContent = text;
+
+                button.addEventListener("mouseover", () => {
+                    button.style.backgroundColor = "#343a40";
+                });
+                button.addEventListener("mouseout", () => {
+                    button.style.backgroundColor = "#212529";
+                });
+                button.addEventListener("click", () => {
+                    window.location.href = href;
+                });
+                return button;
+            };
+
+            const wrapper = document.createElement('div');
+            wrapper.style.textAlign = 'center';
+            wrapper.style.padding = '10px';
+
+            const Button1 = buttonConfig("Тех. раздел", 'https://forum.blackrussia.online/forums/Технический-раздел.22/');
+            const Button2 = buttonConfig("Жб на техов", 'https://forum.blackrussia.online/forums/Жалобы-на-технических-специалистов.490/');
+            const Button4 = buttonConfig("Правила проекта", 'https://forum.blackrussia.online/threads/%D0%9E%D0%B1%D1%89%D0%B8%D0%B5-%D0%BF%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0-%D1%81%D0%B5%D1%80%D0%B2%D0%B5%D1%80%D0%BE%D0%B2.312571/');
+
+            wrapper.append(Button1);
+            wrapper.append(Button2);
+            wrapper.append(Button4);
+
+            bgButtonsContainer.append(wrapper);
+        }
+    };
+
+    // Проверяем, загружены ли jQuery и объект XF от XenForo, прежде чем запускать скрипт
+    const checkDependencies = setInterval(() => {
+        if (window.jQuery && window.XF) {
+            clearInterval(checkDependencies);
+            // Используем $(document).ready для дополнительной надежности
+            window.jQuery(document).ready(onPageReady);
+        }
+    }, 100);
 
 })();
