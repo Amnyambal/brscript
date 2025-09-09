@@ -16,7 +16,7 @@
     },
     {
       "id": "forumbtns",
-      "name": "Форумный скрипт(в разработке)",
+      "name": "Форумный скрипт",
       "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/forum-buttons.js",
       "matches": [
         "https://forum.blackrussia.online/threads/*"
