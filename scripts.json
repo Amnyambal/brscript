@@ -1,12 +1,4 @@
-{
-  "scripts": [
-    {
-      "id": "br-trade-viewer",
-      "name": "Содержимое трейда",
-      "matches": ["https://logs.blackrussia.online/gslogs/*"],
-      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/br-trade-viewer.js",
-      "enabledDefault": true
-    },
+
         {
       "id": "set-tstart",
       "name": "Последняя блокировка/разблокировка",
