@@ -40,6 +40,6 @@
         "https://forum.blackrussia.online/threads/*"
       ],
       "enabledDefault": true
-    },
+    }
   ]
 }
