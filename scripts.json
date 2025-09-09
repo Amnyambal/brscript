@@ -26,7 +26,7 @@
     {
       "id": "forumrus",
       "name": "AI граматика",
-      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/forum-buttons.js",
+      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/airu",
       "matches": [
         "https://forum.blackrussia.online/threads/*"
       ],
