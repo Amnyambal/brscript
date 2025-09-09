@@ -1,1 +1,45 @@
-
+{
+  "scripts": [
+    {
+      "id": "br-trade-viewer",
+      "name": "Содержимое трейда",
+      "matches": ["https://logs.blackrussia.online/gslogs/*"],
+      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/br-trade-viewer.js",
+      "enabledDefault": true
+    },
+        {
+      "id": "set-tstart",
+      "name": "Последняя блокировка/разблокировка",
+      "matches": ["https://logs.blackrussia.online/gslogs/*"],
+      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/baninfo.js",
+      "enabledDefault": true
+    },
+    {
+      "id": "forumbtns",
+      "name": "Форумный скрипт",
+      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/forum-buttons.js",
+      "matches": [
+        "https://forum.blackrussia.online/threads/*"
+      ],
+      "enabledDefault": true
+    },
+        {
+      "id": "forumrus",
+      "name": "AI граматика",
+      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/airu",
+      "matches": [
+        "https://forum.blackrussia.online/threads/*"
+      ],
+      "enabledDefault": true
+    },
+        {
+      "id": "forumkts",
+      "name": "Форумный скрипт для КТС",
+      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/forumkts",
+      "matches": [
+        "https://forum.blackrussia.online/threads/*"
+      ],
+      "enabledDefault": true
+    }
+  ]
+}
