@@ -10,7 +10,7 @@
       "url": "https://github.com/Amnyambal/brscript/blob/main/br-trade-viewer.js",
       "enabledDefault": true
     }
-    }, <-- ВОТ ТАК ПРАВИЛЬНО
+    },
     {
       "id": "set-tstart",
       "name": "Последняя блокировка/разблокировка",
