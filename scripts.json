@@ -6,7 +6,7 @@
       "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/br-helper.js",
       "matches": ["https://logs.blackrussia.online/gslogs/*"],
       "enabledDefault": true
-    }, <-- ВОТ ТАК ПРАВИЛЬНО
+    },
     {
       "id": "BR-FORUM-HELPER",
       "name": "[BR-FORUM-HELPER] - Упрощение функционала на форуме",
