@@ -4,7 +4,7 @@
       "id": "br-trade-viewer",
       "name": "Содержимое трейда",
       "matches": ["https://logs.blackrussia.online/gslogs/*"],
-      "url": "https://raw.githubusercontent.com/3eJleHKa123/br-scripts/main/br-trade-viewer.js",
+      "url": "https://github.com/Amnyambal/brscript/blob/main/br-trade-viewer.js",
       "enabledDefault": true
     },
     {
