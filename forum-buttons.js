@@ -1,6 +1,8 @@
 
   (function () {
 	'use strict';
+	if (document.body.dataset.forumButtonsLoaded) return;
+    document.body.dataset.forumButtonsLoaded = 'true';
 	const UNACCEPT_PREFIX = 4; // префикс отказано
   const ODOBRENO_PREFIX = 8; // префикс одобрено
 	const PIN_PREFIX = 2; //  префикс закрепить
