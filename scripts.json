@@ -24,15 +24,6 @@
       "enabledDefault": true
     },
         {
-      "id": "forumrus",
-      "name": "AI граматика",
-      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/airu",
-      "matches": [
-        "https://forum.blackrussia.online/threads/*"
-      ],
-      "enabledDefault": true
-    },
-        {
       "id": "forumkts",
       "name": "Форумный скрипт для КТС",
       "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/forumkts",
