@@ -25,7 +25,7 @@
     },
         {
       "id": "forumkts",
-      "name": "Форумный скрипт для КТС\ЗКТС" ,
+      "name": "Форумный скрипт для КТС/ЗКТС" ,
       "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/forumkts",
       "matches": [
         "https://forum.blackrussia.online/*"
