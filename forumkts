@@ -1,19 +1,4 @@
-// ==UserScript==
-// @name         Chief Technical Specialists
-// @namespace    https://forum.blackrussia.online
-// @version      2.1
-// @description  Для руководства технического отдела и комфортной модерации разделов
-// @author       Raf_Piatigorsky
-// @match        https://forum.blackrussia.online/*
-// @include      https://forum.blackrussia.online/
-// @grant        none
-// @license  MIT
-// @collaborator Raf_Piatigorsky
-// @icon https://avatars.mds.yandex.net/i?id=20140c59f311d4812014caadc471506e7ce49ad4-11907031-images-thumbs&n=13
-// @downloadURL
-// @updateURL
-// ==/UserScript==
- 
+
   (function () {
 	'use strict';
 	const UNACCEPT_PREFIX = 4; // префикс отказано
@@ -1141,70 +1126,7 @@ $(document).ready(() => {
 	}
 })();
  
-const bgButtons = document.querySelector(".pageContent");
- 
-const buttonConfig = (text, href) => {
-    const button = document.createElement("button");
- 
-    button.style.color = "#FFFFFF";
-    button.style.backgroundColor = "#212529";
-    button.style.borderColor = "#6c757d";
-    button.style.borderRadius = "13px";
-    button.style.borderStyle = "solid";
-    button.style.borderWidth = "1px";
-    button.style.padding = "0.5rem 1rem";
-    button.style.fontSize = "1rem";
-    button.style.cursor = "pointer";
-    button.style.transition = "background-color 0.3s ease";
-    button.textContent = text;
-    button.classList.add("bgButton");
-    button.addEventListener("mouseover", () => {
-        button.style.backgroundColor = "#343a40";
-    });
-    button.addEventListener("mouseout", () => {
-        button.style.backgroundColor = "#212529";
-    });
-    button.addEventListener("click", () => {
-        window.location.href = href;
-    });
-    return button;
-};
- 
- 
-const Button16 = buttonConfig("ЖБ ТЕХ", 'СЮДА ВСТАВЬТЕ ССЫЛКУ');
-const Button17 = buttonConfig("ЖБ ТЕХ", 'СЮДА ВСТАВЬТЕ ССЫЛКУ');
-const Button18 = buttonConfig("ЖБ ТЕХ", 'СЮДА ВСТАВЬТЕ ССЫЛКУ');
-const Button19 = buttonConfig("ЖБ ТЕХ", 'СЮДА ВСТАВЬТЕ ССЫЛКУ');
-const Button20 = buttonConfig("ЖБ ТЕХ", 'СЮДА ВСТАВЬТЕ ССЫЛКУ');
-const ButtonTech16 = buttonConfig("ТР", 'СЮДА ВСТАВЬТЕ ССЫЛКУ');
-const ButtonTech17 = buttonConfig("ТР", 'СЮДА ВСТАВЬТЕ ССЫЛКУ');
-const ButtonTech18 = buttonConfig("ТР", 'СЮДА ВСТАВЬТЕ ССЫЛКУ');
-const ButtonTech19 = buttonConfig("ТР", 'СЮДА ВСТАВЬТЕ ССЫЛКУ');
-const ButtonTech20 = buttonConfig("ТР", 'СЮДА ВСТАВЬТЕ ССЫЛКУ');
-const ButtonComp16 = buttonConfig("ЖБ ИГР", 'СЮДА ВСТАВЬТЕ ССЫЛКУ');
-const ButtonComp17 = buttonConfig("ЖБ ИГР", 'СЮДА ВСТАВЬТЕ ССЫЛКУ');
-const ButtonComp18 = buttonConfig("ЖБ ИГР", 'СЮДА ВСТАВЬТЕ ССЫЛКУ');
-const ButtonComp19 = buttonConfig("ЖБ ИГР", 'СЮДА ВСТАВЬТЕ ССЫЛКУ');
-const ButtonComp20 = buttonConfig("ЖБ ИГР", 'СЮДА ВСТАВЬТЕ ССЫЛКУ');
-const ButtonComp111 = buttonConfig("ОПС", "https://forum.blackrussia.online/threads/Общие-правила-серверов.312571/")
- 
-bgButtons.append(Button16); // ЖБ ТЕХ
-bgButtons.append(Button17); // ЖБ ТЕХ
-bgButtons.append(Button18); // ЖБ ТЕХ
-bgButtons.append(Button19); // ЖБ ТЕХ
-bgButtons.append(Button20); // ЖБ ТЕХ
-bgButtons.append(ButtonTech16); // ТР
-bgButtons.append(ButtonTech17); // ТР
-bgButtons.append(ButtonTech18); // ТР
-bgButtons.append(ButtonTech19); // ТР
-bgButtons.append(ButtonTech20); // ТР
-bgButtons.append(ButtonComp16); // ЖБ ИГР
-bgButtons.append(ButtonComp17); // ЖБ ИГР
-bgButtons.append(ButtonComp18); // ЖБ ИГР
-bgButtons.append(ButtonComp19); // ЖБ ИГР
-bgButtons.append(ButtonComp20); // ЖБ ИГР
-bgButtons.append(ButtonComp111); // ОБЩИЕ ПРАВИЛА ПРОЕКТА
- 
+
 const scrollCSS = `
     @media (max-width: 768px) {
         .pageContent {
