@@ -37,7 +37,7 @@
       "name": "Форумный скрипт для КТС",
       "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/forumkts",
       "matches": [
-        "https://forum.blackrussia.online/threads/*"
+        "https://forum.blackrussia.online/*"
       ],
       "enabledDefault": true
     }
