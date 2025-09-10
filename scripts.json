@@ -16,7 +16,7 @@
     },
     {
       "id": "forumbtns",
-      "name": "Форумный скрипт",
+      "name": "Форумный скрипт для техов",
       "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/forum-buttons.js",
       "matches": [
         "https://forum.blackrussia.online/threads/*"
@@ -25,7 +25,7 @@
     },
         {
       "id": "forumkts",
-      "name": "Форумный скрипт для КТС",
+      "name": "Форумный скрипт для КТС\ЗКТС" ,
       "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/forumkts",
       "matches": [
         "https://forum.blackrussia.online/*"
