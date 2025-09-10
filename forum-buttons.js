@@ -1,17 +1,4 @@
-// ==UserScript==
-// @name         Technical Specialist
-// @namespace    https://forum.blackrussia.online
-// @version      3.0
-// @description  Для технического отдела и комфортной модерации разделов
-// @author       Raf_Piatigorsky
-// @match        https://forum.blackrussia.online/*
-// @include      https://forum.blackrussia.online/
-// @grant        none
-// @license  MIT
-// @collaborator Raf_Piatigorsky
-// @icon https://avatars.mds.yandex.net/i?id=2e5b30b9c5657d05784ad9708e8c9b3597a65679-12890014-images-thumbs&n=13
-// ==/UserScript==
- 
+
   (function () {
 	'use strict';
 	const UNACCEPT_PREFIX = 4; // префикс отказано
@@ -892,44 +879,3 @@
 		return formData;
 	}
 })();
-const bgButtons = document.querySelector(".pageContent");
- 
-const buttonConfig = (text, href) => {
-    const button = document.createElement("button");
- 
-    // Стили на чистом JavaScript для совместимости с iOS и других браузеров.
-    button.style.color = "#FFFFFF"; // Белый текст
-    button.style.backgroundColor = "#212529"; // Серо-черный фон (слегка темнее)
-    button.style.borderColor = "#6c757d"; // Серый цвет рамки (более мягкий)
-    button.style.borderRadius = "13px"; // Закругленные углы
-    button.style.borderStyle = "solid"; // Добавляем стиль границы, чтобы ее было видно
-    button.style.borderWidth = "1px";   //Толщина рамки.  Можно убрать, если вам нужна кнопка без видимой рамки.
-    button.style.padding = "0.5rem 1rem"; // Отступы
-    button.style.fontSize = "1rem"; // Размер шрифта
-    button.style.cursor = "pointer"; // Курсор при наведении
-    button.style.transition = "background-color 0.3s ease"; // Плавный переход цвета
-    button.textContent = text;
-    button.classList.add("bgButton");
-    button.addEventListener("mouseover", () => {
-        button.style.backgroundColor = "#343a40"; // Более светлый серо-черный при наведении
-    });
-    button.addEventListener("mouseout", () => {
-        button.style.backgroundColor = "#212529"; // Возвращаем исходный цвет
-    });
- 
-    button.addEventListener("click", () => {
-        window.location.href = href;
-    });
-    return button;
-};
- 
- 
-const Button1 = buttonConfig("Тех. раздел", 'https://forum.blackrussia.online/forums/Технический-раздел.22/');
-const Button2 = buttonConfig("Жб на техов", 'https://forum.blackrussia.online/forums/Жалобы-на-технических-специалистов.490/');
-//const Button3 = buttonConfig("Жб на игроков", 'кто хочет вставляйте свою ссылку сюда');
-const Button4 = buttonConfig("Правила проекта", 'https://forum.blackrussia.online/threads/%D0%9E%D0%B1%D1%89%D0%B8%D0%B5-%D0%BF%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0-%D1%81%D0%B5%D1%80%D0%B2%D0%B5%D1%80%D0%BE%D0%B2.312571/');
- 
-bgButtons.append(Button1);
-bgButtons.append(Button2);
-//bgButtons.append(Button3);
-bgButtons.append(Button4);
