@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Black Log: House Helper (Как в Трейдах)
+// @name         Black Log: House Helper (Прокси-версия)
 // @namespace    http://tampermonkey.net/
-// @version      5.0
-// @description  Идеальная версия, использующая проверенную логику от скрипта для трейдов.
+// @version      7.0
+// @description  Идеальная версия, которая обходит CORS с помощью прокси и работает в любом расширении.
 // @author       You & AI
 // @match        https://logs.blackrussia.online/gslogs/*
 // @grant        none
@@ -12,7 +12,7 @@
 (function() {
     'use strict';
 
-    // --- 1. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (Полностью автономные) ---
+    // --- 1. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
 
     function addStyle(css) {
         const style = document.createElement('style');
@@ -20,16 +20,37 @@
         document.head.appendChild(style);
     }
 
-    function fetchData(url) {
-        return fetch(url)
+    /**
+     * Функция загрузки данных через публичный CORS-прокси.
+     * Это единственный способ обойти блокировку без Tampermonkey.
+     */
+    function fetchData(originalUrl) {
+        // Используем бесплатный прокси-сервис allorigins.win
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(originalUrl)}`;
+
+        return fetch(proxyUrl)
             .then(response => {
-                if (!response.ok) throw new Error(`Сетевая ошибка: ${response.status}`);
+                if (!response.ok) {
+                    throw new Error(`Сетевая ошибка прокси: ${response.status}`);
+                }
                 return response.text();
             })
-            .then(text => new Function(`return ${text.substring(text.indexOf('['))}`)());
+            .then(text => {
+                // Проверяем, не вернул ли прокси ошибку в виде JSON
+                try {
+                    const errorCheck = JSON.parse(text);
+                    if (errorCheck && errorCheck.contents && errorCheck.contents.includes('error')) {
+                         throw new Error('Прокси не смог загрузить данные.');
+                    }
+                } catch(e) {
+                    // Если это не JSON, значит, все в порядке, это наш JS-код
+                }
+                const arrayString = text.substring(text.indexOf('['));
+                return new Function(`return ${arrayString}`)();
+            });
     }
 
-    // --- 2. СТИЛИ И UI (Взяты из лучших версий) ---
+    // --- 2. СТИЛИ И UI ---
     addStyle(`
         :root {
             --blh-bg-main: rgba(26, 26, 26, 0.7);
@@ -47,7 +68,7 @@
             background: var(--blh-primary-gradient); color: white; border: none;
             padding: 4px 10px; margin-left: 8px; font-size: 12px; border-radius: 8px;
             cursor: pointer; transition: transform var(--blh-transition), box-shadow var(--blh-transition);
-            vertical-align: middle; /* Для красивого расположения в строке */
+            vertical-align: middle;
         }
         .blh-info-button:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(43, 140, 255, 0.3); }
         .blh-modal-overlay {
@@ -89,7 +110,6 @@
     let isDataLoaded = false;
 
     function createModal(info, type) {
-        // Код модального окна без изменений, он идеален
         const modalId = `${type}-${info.id}`;
         if (document.querySelector(`.blh-wrapper[data-id='${modalId}']`)) return;
         const overlay = document.createElement("div");
@@ -151,20 +171,11 @@
     }
 
     // --- 4. ОСНОВНАЯ ЛОГИКА (КАК В ТРЕЙДАХ) ---
-
-    /**
-     * Сканирует ячейки таблицы, находит упоминания недвижимости и добавляет кнопки.
-     */
     function attachHouseButtons() {
-        if (!isDataLoaded) return; // Не запускаем, пока данные не загружены
-
+        if (!isDataLoaded) return;
         const propertyRegex = /(дом|квартира) \(sql: (\d+)\)/g;
-
-        // Ищем все ячейки таблицы, которые еще не были обработаны
         document.querySelectorAll('td:not([data-blh-processed])').forEach(td => {
-            // Проверяем, есть ли в ячейке нужный текст
             if (td.textContent.includes(' (sql: ')) {
-                // Находим все уникальные упоминания недвижимости в одной ячейке
                 const matches = [...td.innerHTML.matchAll(propertyRegex)];
                 const uniqueProperties = new Map();
                 matches.forEach(match => {
@@ -173,18 +184,14 @@
                     const sqlId = parseInt(match[2], 10);
                     uniqueProperties.set(fullText, { type, sqlId });
                 });
-
                 uniqueProperties.forEach(({ type, sqlId }, fullText) => {
-                    // Проверяем, не была ли уже добавлена кнопка для этого ID
                     if (td.querySelector(`.blh-info-button[data-id='${sqlId}']`)) return;
-
                     const btn = document.createElement('button');
                     btn.className = 'blh-info-button';
                     btn.dataset.id = sqlId;
                     btn.textContent = `Инфо #${sqlId}`;
-
                     btn.onclick = (e) => {
-                        e.stopPropagation(); // Предотвращаем другие клики
+                        e.stopPropagation();
                         const dataArray = type === 'house' ? houses : apartments;
                         const info = dataArray.find(item => item.id === sqlId);
                         if (info) {
@@ -193,17 +200,15 @@
                             alert(`Информация для ID ${sqlId} не найдена.`);
                         }
                     };
-                    // ДОБАВЛЯЕМ кнопку в конец ячейки, не трогая исходный текст
                     td.appendChild(btn);
                 });
             }
-            // Помечаем ячейку как обработанную, чтобы не сканировать ее снова
             td.dataset.blhProcessed = 'true';
         });
     }
 
     // --- 5. ИНИЦИАЛИЗАЦИЯ ---
-    console.log('[BLH Как в Трейдах] Скрипт запущен. Загрузка данных...');
+    console.log('[BLH Прокси] Скрипт запущен. Загрузка данных...');
     Promise.all([
         fetchData('https://omni-base.netlify.app/js/house.js'),
         fetchData('https://omni-base.netlify.app/js/apartments.js')
@@ -211,16 +216,12 @@
         houses = houseData;
         apartments = apartmentData;
         isDataLoaded = true;
-        console.log(`[BLH Как в Трейдах] Данные загружены: ${houses.length} домов, ${apartments.length} квартир.`);
-
-        // Запускаем сканирование сразу
+        console.log(`[BLH Прокси] Данные загружены: ${houses.length} домов, ${apartments.length} квартир.`);
         attachHouseButtons();
-        // И запускаем его периодически, как в скрипте для трейдов
-        setInterval(attachHouseButtons, 1500); // Проверяем каждые 1.5 секунды
-
+        setInterval(attachHouseButtons, 1500);
     }).catch(error => {
-        console.error("[BLH] Критическая ошибка загрузки данных:", error);
-        alert("Не удалось загрузить данные о недвижимости. Скрипт не будет работать.");
+        console.error("[BLH Прокси] Критическая ошибка:", error);
+        alert("Не удалось загрузить данные о недвижимости через прокси. Сервис-посредник может быть временно недоступен.");
     });
 
 })();
