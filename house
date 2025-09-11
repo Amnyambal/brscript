@@ -1,9 +1,9 @@
 // ==UserScript==
-// @name         Black Log: House & Apartment Helper (Ultimate Fix)
+// @name         Black Log: House Helper (Как в Трейдах)
 // @namespace    http://tampermonkey.net/
-// @version      3.3
-// @description  Полностью автономная версия, не зависящая от API расширения.
-// @author       You
+// @version      5.0
+// @description  Идеальная версия, использующая проверенную логику от скрипта для трейдов.
+// @author       You & AI
 // @match        https://logs.blackrussia.online/gslogs/*
 // @grant        none
 // @run-at       document-end
@@ -12,37 +12,24 @@
 (function() {
     'use strict';
 
-    /**
-     * Стандартная функция для добавления CSS на страницу.
-     */
+    // --- 1. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (Полностью автономные) ---
+
     function addStyle(css) {
         const style = document.createElement('style');
         style.textContent = css;
         document.head.appendChild(style);
     }
 
-    /**
-     * Функция загрузки данных с помощью стандартного 'fetch'.
-     * Она заменяет GM_xmlhttpRequest, который не работает в вашем расширении.
-     */
     function fetchData(url) {
         return fetch(url)
             .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`Сетевая ошибка: ${response.status}`);
                 return response.text();
             })
-            .then(text => {
-                const arrayString = text.substring(text.indexOf('['));
-                // Безопасный парсинг JSON из JS-файла
-                return new Function(`return ${arrayString}`)();
-            });
+            .then(text => new Function(`return ${text.substring(text.indexOf('['))}`)());
     }
 
-    // -------------------
-    // 1. СТИЛИ И ИНТЕРФЕЙС
-    // -------------------
+    // --- 2. СТИЛИ И UI (Взяты из лучших версий) ---
     addStyle(`
         :root {
             --blh-bg-main: rgba(26, 26, 26, 0.7);
@@ -56,63 +43,33 @@
             --blh-font-family: 'Segoe UI', sans-serif;
             --blh-transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-
         .blh-info-button {
-            background: var(--blh-primary-gradient);
-            color: white;
-            border: none;
-            padding: 4px 10px;
-            margin: 0 2px;
-            font-size: 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: transform var(--blh-transition), box-shadow var(--blh-transition);
+            background: var(--blh-primary-gradient); color: white; border: none;
+            padding: 4px 10px; margin-left: 8px; font-size: 12px; border-radius: 8px;
+            cursor: pointer; transition: transform var(--blh-transition), box-shadow var(--blh-transition);
+            vertical-align: middle; /* Для красивого расположения в строке */
         }
-        .blh-info-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(43, 140, 255, 0.3);
-        }
-
+        .blh-info-button:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(43, 140, 255, 0.3); }
         .blh-modal-overlay {
-            position: fixed; inset: 0;
-            background: rgba(0,0,0,.6);
-            z-index: 9999;
-            backdrop-filter: blur(4px);
-            opacity: 0;
-            transition: opacity var(--blh-transition);
-            pointer-events: none;
+            position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 9999;
+            backdrop-filter: blur(4px); opacity: 0; transition: opacity var(--blh-transition); pointer-events: none;
         }
         .blh-modal-overlay.visible { opacity: 1; pointer-events: auto; }
-
         .blh-wrapper {
-            position: fixed; z-index: 10000; inset: 0;
-            display: flex; justify-content: center; align-items: center;
-            padding: 16px;
+            position: fixed; z-index: 10000; inset: 0; display: flex;
+            justify-content: center; align-items: center; padding: 16px;
         }
-
         .blh-modal {
-            background: var(--blh-bg-main);
-            color: var(--blh-text-primary);
-            box-shadow: var(--blh-shadow);
-            width: 95%; max-width: 600px;
-            max-height: 90vh;
-            overflow: hidden;
-            display: flex; flex-direction: column;
-            font-family: var(--blh-font-family);
-            border: 1px solid var(--blh-border-color);
-            backdrop-filter: blur(15px);
-            border-radius: var(--blh-radius);
-            opacity: 0;
-            transform: scale(0.95);
-            transition: opacity var(--blh-transition), transform var(--blh-transition);
+            background: var(--blh-bg-main); color: var(--blh-text-primary); box-shadow: var(--blh-shadow);
+            width: 95%; max-width: 600px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column;
+            font-family: var(--blh-font-family); border: 1px solid var(--blh-border-color);
+            backdrop-filter: blur(15px); border-radius: var(--blh-radius); opacity: 0;
+            transform: scale(0.95); transition: opacity var(--blh-transition), transform var(--blh-transition);
         }
         .blh-wrapper.visible .blh-modal { opacity: 1; transform: scale(1); }
-
         .blh-modal-header {
             display: flex; justify-content: space-between; align-items: center;
-            padding: 16px 24px;
-            border-bottom: 1px solid var(--blh-border-color);
-            cursor: move;
+            padding: 16px 24px; border-bottom: 1px solid var(--blh-border-color); cursor: move;
         }
         .blh-modal-title { font-size: 18px; font-weight: 600; color: var(--blh-text-highlight); margin: 0; }
         .blh-modal-close {
@@ -121,78 +78,42 @@
             transition: color var(--blh-transition), transform var(--blh-transition);
         }
         .blh-modal-close:hover { color: #fff; transform: rotate(90deg); }
-
-        .blh-modal-content {
-            overflow-y: auto; padding: 24px;
-        }
-        .blh-modal-content p {
-            margin: 0 0 14px; font-size: 1.1rem; line-height: 1.6;
-            display: flex;
-        }
-        .blh-modal-content strong {
-            color: #87ceeb; min-width: 160px; display: inline-block;
-        }
+        .blh-modal-content { overflow-y: auto; padding: 24px; }
+        .blh-modal-content p { margin: 0 0 14px; font-size: 1.1rem; line-height: 1.6; display: flex; }
+        .blh-modal-content strong { color: #87ceeb; min-width: 160px; display: inline-block; }
     `);
 
-    // -------------------
-    // 2. ЗАГРУЗКА ДАННЫХ
-    // -------------------
+    // --- 3. ХРАНИЛИЩЕ ДАННЫХ И UI ---
     let houses = [];
     let apartments = [];
     let isDataLoaded = false;
 
-    // -------------------
-    // 3. СОЗДАНИЕ МОДАЛЬНОГО ОКНА
-    // -------------------
     function createModal(info, type) {
+        // Код модального окна без изменений, он идеален
         const modalId = `${type}-${info.id}`;
         if (document.querySelector(`.blh-wrapper[data-id='${modalId}']`)) return;
-
         const overlay = document.createElement("div");
         overlay.className = "blh-modal-overlay";
-
         const wrapper = document.createElement("div");
         wrapper.className = "blh-wrapper";
         wrapper.dataset.id = modalId;
-
         const modal = document.createElement("div");
         modal.className = "blh-modal";
-
         let titleText = type === 'house' ? `Дом #${info.id}` : `Квартира #${info.id}`;
         let contentHtml = '';
-
         if (type === 'house') {
-            contentHtml = `
-                <p><strong>Класс:</strong> ${info.class || 'Не указан'}</p>
-                <p><strong>Цена:</strong> ${info.price.toLocaleString('ru-RU')} ₽</p>
-                <p><strong>Гараж:</strong> ${info.garage ? 'Есть' : 'Нет'}</p>
-                <p><strong>Мест в гараже:</strong> ${info.garageslots || 0}</p>
-            `;
+            contentHtml = `<p><strong>Класс:</strong> ${info.class||'Не указан'}</p><p><strong>Цена:</strong> ${info.price.toLocaleString('ru-RU')} ₽</p><p><strong>Гараж:</strong> ${info.garage?'Есть':'Нет'}</p><p><strong>Мест в гараже:</strong> ${info.garageslots||0}</p>`;
         } else {
-            contentHtml = `
-                <p><strong>Название ЖК:</strong> ${info.name || 'Не указано'}</p>
-                <p><strong>Класс:</strong> ${info.class || 'Не указан'}</p>
-                <p><strong>Цена:</strong> ${info.price.toLocaleString('ru-RU')} ₽</p>
-            `;
+            contentHtml = `<p><strong>Название ЖК:</strong> ${info.name||'Не указано'}</p><p><strong>Класс:</strong> ${info.class||'Не указан'}</p><p><strong>Цена:</strong> ${info.price.toLocaleString('ru-RU')} ₽</p>`;
         }
-
-        modal.innerHTML = `
-            <div class="blh-modal-header">
-                <h3 class="blh-modal-title">${titleText}</h3>
-                <button class="blh-modal-close" aria-label="Закрыть">&times;</button>
-            </div>
-            <div class="blh-modal-content">${contentHtml}</div>
-        `;
-
+        modal.innerHTML = `<div class="blh-modal-header"><h3 class="blh-modal-title">${titleText}</h3><button class="blh-modal-close" aria-label="Закрыть">&times;</button></div><div class="blh-modal-content">${contentHtml}</div>`;
         wrapper.appendChild(modal);
         document.body.appendChild(overlay);
         document.body.appendChild(wrapper);
-
         requestAnimationFrame(() => {
             overlay.classList.add('visible');
             wrapper.classList.add('visible');
         });
-
         const closeModal = () => {
             wrapper.classList.remove('visible');
             overlay.classList.remove('visible');
@@ -202,12 +123,10 @@
                 document.removeEventListener('keydown', handleEscKey);
             }, { once: true });
         };
-
         const handleEscKey = (e) => e.key === 'Escape' && closeModal();
         overlay.addEventListener('click', closeModal);
         modal.querySelector('.blh-modal-close').addEventListener('click', closeModal);
         document.addEventListener('keydown', handleEscKey);
-
         const header = modal.querySelector('.blh-modal-header');
         let isDragging = false, initialX, initialY;
         header.addEventListener('mousedown', (e) => {
@@ -231,61 +150,60 @@
         });
     }
 
-    // -------------------
-    // 4. ОСНОВНАЯ ЛОГИКА
-    // -------------------
-    function enhanceNode(node) {
-        const regex = /(дом|квартира) \(sql: (\d+)\)/g;
-        const parent = node.parentNode;
-        if (!parent || ['BUTTON', 'STYLE', 'SCRIPT'].includes(parent.nodeName)) return;
+    // --- 4. ОСНОВНАЯ ЛОГИКА (КАК В ТРЕЙДАХ) ---
 
-        const matches = [...node.textContent.matchAll(regex)];
-        if (matches.length === 0) return;
+    /**
+     * Сканирует ячейки таблицы, находит упоминания недвижимости и добавляет кнопки.
+     */
+    function attachHouseButtons() {
+        if (!isDataLoaded) return; // Не запускаем, пока данные не загружены
 
-        const fragment = document.createDocumentFragment();
-        let lastIndex = 0;
+        const propertyRegex = /(дом|квартира) \(sql: (\d+)\)/g;
 
-        matches.forEach(match => {
-            const type = match[1] === 'дом' ? 'house' : 'apartment';
-            const sqlId = parseInt(match[2], 10);
+        // Ищем все ячейки таблицы, которые еще не были обработаны
+        document.querySelectorAll('td:not([data-blh-processed])').forEach(td => {
+            // Проверяем, есть ли в ячейке нужный текст
+            if (td.textContent.includes(' (sql: ')) {
+                // Находим все уникальные упоминания недвижимости в одной ячейке
+                const matches = [...td.innerHTML.matchAll(propertyRegex)];
+                const uniqueProperties = new Map();
+                matches.forEach(match => {
+                    const fullText = match[0];
+                    const type = match[1] === 'дом' ? 'house' : 'apartment';
+                    const sqlId = parseInt(match[2], 10);
+                    uniqueProperties.set(fullText, { type, sqlId });
+                });
 
-            fragment.appendChild(document.createTextNode(node.textContent.slice(lastIndex, match.index)));
+                uniqueProperties.forEach(({ type, sqlId }, fullText) => {
+                    // Проверяем, не была ли уже добавлена кнопка для этого ID
+                    if (td.querySelector(`.blh-info-button[data-id='${sqlId}']`)) return;
 
-            const btn = document.createElement('button');
-            btn.className = 'blh-info-button';
-            btn.textContent = match[0];
-            btn.onclick = (e) => {
-                e.stopPropagation();
-                const dataArray = type === 'house' ? houses : apartments;
-                const info = dataArray.find(item => item.id === sqlId);
-                if (info) {
-                    createModal(info, type);
-                } else {
-                    alert(`Информация для ID ${sqlId} не найдена.`);
-                }
-            };
-            fragment.appendChild(btn);
-            lastIndex = match.index + match[0].length;
+                    const btn = document.createElement('button');
+                    btn.className = 'blh-info-button';
+                    btn.dataset.id = sqlId;
+                    btn.textContent = `Инфо #${sqlId}`;
+
+                    btn.onclick = (e) => {
+                        e.stopPropagation(); // Предотвращаем другие клики
+                        const dataArray = type === 'house' ? houses : apartments;
+                        const info = dataArray.find(item => item.id === sqlId);
+                        if (info) {
+                            createModal(info, type);
+                        } else {
+                            alert(`Информация для ID ${sqlId} не найдена.`);
+                        }
+                    };
+                    // ДОБАВЛЯЕМ кнопку в конец ячейки, не трогая исходный текст
+                    td.appendChild(btn);
+                });
+            }
+            // Помечаем ячейку как обработанную, чтобы не сканировать ее снова
+            td.dataset.blhProcessed = 'true';
         });
-
-        fragment.appendChild(document.createTextNode(node.textContent.slice(lastIndex)));
-        parent.replaceChild(fragment, node);
     }
 
-    function scanAndProcess(targetNode) {
-        if (!isDataLoaded) return;
-        const walker = document.createTreeWalker(targetNode, NodeFilter.SHOW_TEXT, {
-            acceptNode: (node) => (node.textContent.includes(' (sql: ') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT)
-        });
-        const nodes = [];
-        while (walker.nextNode()) nodes.push(walker.currentNode);
-        nodes.forEach(enhanceNode);
-    }
-
-    // -------------------
-    // 5. ИНИЦИАЛИЗАЦИЯ
-    // -------------------
-    console.log('[BLH Ultimate] Скрипт запущен. Загрузка данных...');
+    // --- 5. ИНИЦИАЛИЗАЦИЯ ---
+    console.log('[BLH Как в Трейдах] Скрипт запущен. Загрузка данных...');
     Promise.all([
         fetchData('https://omni-base.netlify.app/js/house.js'),
         fetchData('https://omni-base.netlify.app/js/apartments.js')
@@ -293,14 +211,16 @@
         houses = houseData;
         apartments = apartmentData;
         isDataLoaded = true;
-        console.log(`[BLH Ultimate] Данные загружены: ${houses.length} домов, ${apartments.length} квартир.`);
+        console.log(`[BLH Как в Трейдах] Данные загружены: ${houses.length} домов, ${apartments.length} квартир.`);
 
-        scanAndProcess(document.body);
-
-        // Observer не нужен, так как content.js из расширения уже делает reinject.
+        // Запускаем сканирование сразу
+        attachHouseButtons();
+        // И запускаем его периодически, как в скрипте для трейдов
+        setInterval(attachHouseButtons, 1500); // Проверяем каждые 1.5 секунды
 
     }).catch(error => {
-        console.error("[BLH Ultimate] Критическая ошибка загрузки данных:", error);
+        console.error("[BLH] Критическая ошибка загрузки данных:", error);
+        alert("Не удалось загрузить данные о недвижимости. Скрипт не будет работать.");
     });
 
 })();
