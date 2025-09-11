@@ -1,68 +1,34 @@
 // ==UserScript==
-// @name         Black Log: House Helper (Прокси-версия, фикс для расширения)
+// @name         Black Log: House Helper (Extension Edition, Pro)
 // @namespace    http://tampermonkey.net/
-// @version      7.1
-// @description  Версия с фиксами dataset → setAttribute для работы в расширении без ошибок.
-// @author       You & AI
+// @version      8.0
+// @description  Версия для расширений: прямой fetch без прокси + MutationObserver, чистый код как у senior-разработчика :) 
+// @author       You
 // @match        https://logs.blackrussia.online/gslogs/*
 // @grant        none
 // @run-at       document-end
 // ==/UserScript==
 
 (function() {
-    'use strict';
+    "use strict";
 
-    // --- 1. ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ---
-
-    function addStyle(css) {
-        const style = document.createElement('style');
-        style.textContent = css;
-        document.head.appendChild(style);
-    }
-
-    function fetchData(originalUrl) {
-        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(originalUrl)}`;
-        return fetch(proxyUrl)
-            .then(response => {
-                if (!response.ok) throw new Error(`Сетевая ошибка прокси: ${response.status}`);
-                return response.text();
-            })
-            .then(text => {
-                try {
-                    const errorCheck = JSON.parse(text);
-                    if (errorCheck && errorCheck.contents && errorCheck.contents.includes('error')) {
-                        throw new Error('Прокси не смог загрузить данные.');
-                    }
-                } catch(e) { /* игнор, значит это не JSON */ }
-                const arrayString = text.substring(text.indexOf('['));
-                return new Function(`return ${arrayString}`)();
-            });
-    }
-
-    // --- 2. СТИЛИ И UI ---
-    addStyle(`
-        :root {
-            --blh-bg-main: rgba(26, 26, 26, 0.7);
-            --blh-text-primary: #ffffff;
-            --blh-text-secondary: #cccccc;
-            --blh-text-highlight: #2b8cff;
-            --blh-primary-gradient: linear-gradient(145deg, #0d6efd, #0a58ca);
-            --blh-border-color: rgba(255, 255, 255, 0.1);
-            --blh-shadow: 0 10px 35px rgba(0,0,0,.5);
-            --blh-radius: 12px;
-            --blh-font-family: 'Segoe UI', sans-serif;
-            --blh-transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+    // ---------- Стили ----------
+    const style = document.createElement("style");
+    style.textContent = `
         .blh-info-button {
-            background: var(--blh-primary-gradient); color: white; border: none;
-            padding: 4px 10px; margin-left: 8px; font-size: 12px; border-radius: 8px;
-            cursor: pointer; transition: transform var(--blh-transition), box-shadow var(--blh-transition);
-            vertical-align: middle;
+            background: linear-gradient(145deg, #0d6efd, #0a58ca);
+            color: white; border: none; padding: 4px 10px; margin-left: 8px;
+            font-size: 12px; border-radius: 8px; cursor: pointer;
+            transition: transform .2s ease, box-shadow .2s ease;
         }
-        .blh-info-button:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(43, 140, 255, 0.3); }
+        .blh-info-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(43, 140, 255, 0.3);
+        }
         .blh-modal-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 9999;
-            backdrop-filter: blur(4px); opacity: 0; transition: opacity var(--blh-transition); pointer-events: none;
+            position: fixed; inset: 0; background: rgba(0,0,0,.6);
+            z-index: 9999; backdrop-filter: blur(4px);
+            opacity: 0; transition: opacity .3s; pointer-events: none;
         }
         .blh-modal-overlay.visible { opacity: 1; pointer-events: auto; }
         .blh-wrapper {
@@ -70,147 +36,190 @@
             justify-content: center; align-items: center; padding: 16px;
         }
         .blh-modal {
-            background: var(--blh-bg-main); color: var(--blh-text-primary); box-shadow: var(--blh-shadow);
-            width: 95%; max-width: 600px; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column;
-            font-family: var(--blh-font-family); border: 1px solid var(--blh-border-color);
-            backdrop-filter: blur(15px); border-radius: var(--blh-radius); opacity: 0;
-            transform: scale(0.95); transition: opacity var(--blh-transition), transform var(--blh-transition);
+            background: rgba(26,26,26,.9); color: #fff; box-shadow: 0 10px 35px rgba(0,0,0,.5);
+            width: 95%; max-width: 600px; max-height: 90vh;
+            overflow: hidden; display: flex; flex-direction: column;
+            font-family: 'Segoe UI', sans-serif;
+            border-radius: 12px; opacity: 0; transform: scale(0.95);
+            transition: opacity .3s, transform .3s;
         }
         .blh-wrapper.visible .blh-modal { opacity: 1; transform: scale(1); }
         .blh-modal-header {
             display: flex; justify-content: space-between; align-items: center;
-            padding: 16px 24px; border-bottom: 1px solid var(--blh-border-color); cursor: move;
+            padding: 16px 24px; border-bottom: 1px solid rgba(255,255,255,.1);
+            cursor: move;
         }
-        .blh-modal-title { font-size: 18px; font-weight: 600; color: var(--blh-text-highlight); margin: 0; }
+        .blh-modal-title { font-size: 18px; font-weight: 600; color: #2b8cff; margin: 0; }
         .blh-modal-close {
-            background: transparent; border: none; color: var(--blh-text-secondary);
-            font-size: 28px; line-height: 1; padding: 0 8px; cursor: pointer;
-            transition: color var(--blh-transition), transform var(--blh-transition);
+            background: transparent; border: none; color: #ccc;
+            font-size: 28px; line-height: 1; cursor: pointer;
+            transition: color .2s, transform .2s;
         }
         .blh-modal-close:hover { color: #fff; transform: rotate(90deg); }
         .blh-modal-content { overflow-y: auto; padding: 24px; }
-        .blh-modal-content p { margin: 0 0 14px; font-size: 1.1rem; line-height: 1.6; display: flex; }
+        .blh-modal-content p { margin: 0 0 14px; font-size: 1rem; line-height: 1.5; display: flex; }
         .blh-modal-content strong { color: #87ceeb; min-width: 160px; display: inline-block; }
-    `);
+    `;
+    document.head.appendChild(style);
 
-    // --- 3. ХРАНИЛИЩЕ ДАННЫХ И UI ---
+    // ---------- Хранилище ----------
     let houses = [];
     let apartments = [];
     let isDataLoaded = false;
 
+    // ---------- Загрузка данных ----------
+    async function fetchData(url) {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`Ошибка загрузки: ${resp.status}`);
+        const text = await resp.text();
+        const arrayString = text.substring(text.indexOf("["));
+        return new Function(`return ${arrayString}`)();
+    }
+
+    async function loadAllData() {
+        try {
+            [houses, apartments] = await Promise.all([
+                fetchData("https://omni-base.netlify.app/js/house.js"),
+                fetchData("https://omni-base.netlify.app/js/apartments.js")
+            ]);
+            isDataLoaded = true;
+            console.log(`[BLH] Загружено: ${houses.length} домов, ${apartments.length} квартир.`);
+        } catch (err) {
+            console.error("[BLH] Ошибка загрузки:", err);
+        }
+    }
+
+    // ---------- UI: модалка ----------
     function createModal(info, type) {
         const modalId = `${type}-${info.id}`;
         if (document.querySelector(`.blh-wrapper[data-id='${modalId}']`)) return;
+
         const overlay = document.createElement("div");
         overlay.className = "blh-modal-overlay";
         const wrapper = document.createElement("div");
         wrapper.className = "blh-wrapper";
         wrapper.dataset.id = modalId;
+
         const modal = document.createElement("div");
         modal.className = "blh-modal";
-        let titleText = type === 'house' ? `Дом #${info.id}` : `Квартира #${info.id}`;
-        let contentHtml = '';
-        if (type === 'house') {
-            contentHtml = `<p><strong>Класс:</strong> ${info.class||'Не указан'}</p><p><strong>Цена:</strong> ${info.price.toLocaleString('ru-RU')} ₽</p><p><strong>Гараж:</strong> ${info.garage?'Есть':'Нет'}</p><p><strong>Мест в гараже:</strong> ${info.garageslots||0}</p>`;
+
+        const title = type === "house" ? `Дом #${info.id}` : `Квартира #${info.id}`;
+        let content = "";
+        if (type === "house") {
+            content = `
+                <p><strong>Класс:</strong> ${info.class || "Не указан"}</p>
+                <p><strong>Цена:</strong> ${info.price.toLocaleString("ru-RU")} ₽</p>
+                <p><strong>Гараж:</strong> ${info.garage ? "Есть" : "Нет"}</p>
+                <p><strong>Мест в гараже:</strong> ${info.garageslots || 0}</p>
+            `;
         } else {
-            contentHtml = `<p><strong>Название ЖК:</strong> ${info.name||'Не указано'}</p><p><strong>Класс:</strong> ${info.class||'Не указан'}</p><p><strong>Цена:</strong> ${info.price.toLocaleString('ru-RU')} ₽</p>`;
+            content = `
+                <p><strong>Название ЖК:</strong> ${info.name || "Не указано"}</p>
+                <p><strong>Класс:</strong> ${info.class || "Не указан"}</p>
+                <p><strong>Цена:</strong> ${info.price.toLocaleString("ru-RU")} ₽</p>
+            `;
         }
-        modal.innerHTML = `<div class="blh-modal-header"><h3 class="blh-modal-title">${titleText}</h3><button class="blh-modal-close" aria-label="Закрыть">&times;</button></div><div class="blh-modal-content">${contentHtml}</div>`;
+
+        modal.innerHTML = `
+            <div class="blh-modal-header">
+                <h3 class="blh-modal-title">${title}</h3>
+                <button class="blh-modal-close" aria-label="Закрыть">&times;</button>
+            </div>
+            <div class="blh-modal-content">${content}</div>
+        `;
         wrapper.appendChild(modal);
         document.body.appendChild(overlay);
         document.body.appendChild(wrapper);
+
         requestAnimationFrame(() => {
-            overlay.classList.add('visible');
-            wrapper.classList.add('visible');
+            overlay.classList.add("visible");
+            wrapper.classList.add("visible");
         });
+
         const closeModal = () => {
-            wrapper.classList.remove('visible');
-            overlay.classList.remove('visible');
-            wrapper.addEventListener('transitionend', () => {
+            wrapper.classList.remove("visible");
+            overlay.classList.remove("visible");
+            wrapper.addEventListener("transitionend", () => {
                 wrapper.remove();
                 overlay.remove();
-                document.removeEventListener('keydown', handleEscKey);
             }, { once: true });
         };
-        const handleEscKey = (e) => e.key === 'Escape' && closeModal();
-        overlay.addEventListener('click', closeModal);
-        modal.querySelector('.blh-modal-close').addEventListener('click', closeModal);
-        document.addEventListener('keydown', handleEscKey);
-        const header = modal.querySelector('.blh-modal-header');
-        let isDragging = false, initialX, initialY;
-        header.addEventListener('mousedown', (e) => {
-            if (e.target.classList.contains('blh-modal-close')) return;
+        overlay.addEventListener("click", closeModal);
+        modal.querySelector(".blh-modal-close").addEventListener("click", closeModal);
+
+        // drag’n’drop
+        const header = modal.querySelector(".blh-modal-header");
+        let isDragging = false, startX, startY;
+        header.addEventListener("mousedown", e => {
+            if (e.target.closest(".blh-modal-close")) return;
             const rect = wrapper.getBoundingClientRect();
-            initialX = e.clientX - rect.left;
-            initialY = e.clientY - rect.top;
+            startX = e.clientX - rect.left;
+            startY = e.clientY - rect.top;
             isDragging = true;
-            document.body.style.userSelect = 'none';
+            wrapper.style.position = "absolute";
         });
-        document.addEventListener('mousemove', (e) => {
-            if (isDragging) {
-                wrapper.style.left = `${e.clientX - initialX}px`;
-                wrapper.style.top = `${e.clientY - initialY}px`;
-                wrapper.style.transform = 'none';
-                wrapper.style.position = 'absolute';
-            }
+        document.addEventListener("mousemove", e => {
+            if (!isDragging) return;
+            wrapper.style.left = `${e.clientX - startX}px`;
+            wrapper.style.top = `${e.clientY - startY}px`;
+            wrapper.style.transform = "none";
         });
-        document.addEventListener('mouseup', () => {
-            isDragging = false;
-            document.body.style.userSelect = '';
-        });
+        document.addEventListener("mouseup", () => isDragging = false);
     }
 
-    // --- 4. ОСНОВНАЯ ЛОГИКА ---
-    function attachHouseButtons() {
+    // ---------- Логика кнопок ----------
+    function processCell(td) {
+        if (td.getAttribute("data-blh-processed")) return;
+        td.setAttribute("data-blh-processed", "true");
+
         if (!isDataLoaded) return;
+
         const propertyRegex = /(дом|квартира) \(sql: (\d+)\)/g;
-        document.querySelectorAll('td:not([data-blh-processed])').forEach(td => {
-            if (td.textContent.includes(' (sql: ')) {
-                const matches = [...td.innerHTML.matchAll(propertyRegex)];
-                const uniqueProperties = new Map();
-                matches.forEach(match => {
-                    const type = match[1] === 'дом' ? 'house' : 'apartment';
-                    const sqlId = parseInt(match[2], 10);
-                    uniqueProperties.set(match[0], { type, sqlId });
-                });
-                uniqueProperties.forEach(({ type, sqlId }) => {
-                    if (td.querySelector(`.blh-info-button[data-id='${sqlId}']`)) return;
-                    const btn = document.createElement('button');
-                    btn.className = 'blh-info-button';
-                    btn.dataset.id = sqlId;
-                    btn.textContent = `Инфо #${sqlId}`;
-                    btn.onclick = (e) => {
-                        e.stopPropagation();
-                        const dataArray = type === 'house' ? houses : apartments;
-                        const info = dataArray.find(item => item.id === sqlId);
-                        if (info) {
-                            createModal(info, type);
-                        } else {
-                            alert(`Информация для ID ${sqlId} не найдена.`);
-                        }
-                    };
-                    td.appendChild(btn);
-                });
-            }
-            td.setAttribute("data-blh-processed", "true"); // фикс вместо dataset
+        const matches = [...td.innerHTML.matchAll(propertyRegex)];
+        const unique = new Map();
+
+        matches.forEach(m => {
+            const type = m[1] === "дом" ? "house" : "apartment";
+            const sqlId = parseInt(m[2], 10);
+            unique.set(m[0], { type, sqlId });
+        });
+
+        unique.forEach(({ type, sqlId }) => {
+            if (td.querySelector(`.blh-info-button[data-id='${sqlId}']`)) return;
+            const btn = document.createElement("button");
+            btn.className = "blh-info-button";
+            btn.dataset.id = sqlId;
+            btn.textContent = `Инфо #${sqlId}`;
+            btn.onclick = e => {
+                e.stopPropagation();
+                const dataArr = type === "house" ? houses : apartments;
+                const info = dataArr.find(x => x.id === sqlId);
+                if (info) createModal(info, type);
+                else alert(`Нет данных для ID ${sqlId}`);
+            };
+            td.appendChild(btn);
         });
     }
 
-    // --- 5. ИНИЦИАЛИЗАЦИЯ ---
-    console.log('[BLH Прокси] Скрипт запущен. Загрузка данных...');
-    Promise.all([
-        fetchData('https://omni-base.netlify.app/js/house.js'),
-        fetchData('https://omni-base.netlify.app/js/apartments.js')
-    ]).then(([houseData, apartmentData]) => {
-        houses = houseData;
-        apartments = apartmentData;
-        isDataLoaded = true;
-        console.log(`[BLH Прокси] Данные загружены: ${houses.length} домов, ${apartments.length} квартир.`);
-        attachHouseButtons();
-        setInterval(attachHouseButtons, 1500);
-    }).catch(error => {
-        console.error("[BLH Прокси] Критическая ошибка:", error);
-        alert("Не удалось загрузить данные о недвижимости через прокси. Сервис-посредник может быть временно недоступен.");
-    });
+    // ---------- MutationObserver ----------
+    function observeTable() {
+        const observer = new MutationObserver(mutations => {
+            mutations.forEach(m => {
+                m.addedNodes.forEach(node => {
+                    if (node.nodeType === 1 && node.matches("td")) {
+                        processCell(node);
+                    } else if (node.nodeType === 1) {
+                        node.querySelectorAll("td").forEach(processCell);
+                    }
+                });
+            });
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+        document.querySelectorAll("td").forEach(processCell);
+    }
+
+    // ---------- Запуск ----------
+    console.log("[BLH] Скрипт активирован, загружаем данные...");
+    loadAllData().then(observeTable);
 
 })();
