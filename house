@@ -1,12 +1,12 @@
 // ==UserScript==
-// @name         Black Log: House & Apartment Helper (BR-Ext Compatible)
+// @name         Black Log: House & Apartment Helper (Ultimate Fix)
 // @namespace    http://tampermonkey.net/
-// @version      3.2
-// @description  Версия, совместимая с расширением BR Scripts Loader.
+// @version      3.3
+// @description  Полностью автономная версия, не зависящая от API расширения.
 // @author       You
 // @match        https://logs.blackrussia.online/gslogs/*
-// @connect      omni-base.netlify.app
-// @grant        GM_xmlhttpRequest
+// @grant        none
+// @run-at       document-end
 // ==/UserScript==
 
 (function() {
@@ -14,12 +14,30 @@
 
     /**
      * Стандартная функция для добавления CSS на страницу.
-     * Она заменяет GM_addStyle, которой нет в вашем расширении.
      */
     function addStyle(css) {
         const style = document.createElement('style');
         style.textContent = css;
         document.head.appendChild(style);
+    }
+
+    /**
+     * Функция загрузки данных с помощью стандартного 'fetch'.
+     * Она заменяет GM_xmlhttpRequest, который не работает в вашем расширении.
+     */
+    function fetchData(url) {
+        return fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error ${response.status}`);
+                }
+                return response.text();
+            })
+            .then(text => {
+                const arrayString = text.substring(text.indexOf('['));
+                // Безопасный парсинг JSON из JS-файла
+                return new Function(`return ${arrayString}`)();
+            });
     }
 
     // -------------------
@@ -94,7 +112,7 @@
             display: flex; justify-content: space-between; align-items: center;
             padding: 16px 24px;
             border-bottom: 1px solid var(--blh-border-color);
-            cursor: move; /* Для перетаскивания */
+            cursor: move;
         }
         .blh-modal-title { font-size: 18px; font-weight: 600; color: var(--blh-text-highlight); margin: 0; }
         .blh-modal-close {
@@ -117,29 +135,11 @@
     `);
 
     // -------------------
-    // 2. ЗАГРУЗКА ДАННЫХ (Используется GM_xmlhttpRequest из вашего расширения)
+    // 2. ЗАГРУЗКА ДАННЫХ
     // -------------------
     let houses = [];
     let apartments = [];
     let isDataLoaded = false;
-
-    function fetchData(url) {
-        return new Promise((resolve, reject) => {
-            GM_xmlhttpRequest({
-                method: "GET", url,
-                onload: res => {
-                    if (res.status >= 200 && res.status < 300) {
-                        try {
-                            const text = res.responseText;
-                            const arrayString = text.substring(text.indexOf('['));
-                            resolve(new Function(`return ${arrayString}`)());
-                        } catch (e) { reject(e); }
-                    } else { reject(new Error(`HTTP error ${res.status}`)); }
-                },
-                onerror: err => reject(err)
-            });
-        });
-    }
 
     // -------------------
     // 3. СОЗДАНИЕ МОДАЛЬНОГО ОКНА
@@ -285,7 +285,7 @@
     // -------------------
     // 5. ИНИЦИАЛИЗАЦИЯ
     // -------------------
-    console.log('[BLH Compatible] Скрипт запущен. Загрузка данных...');
+    console.log('[BLH Ultimate] Скрипт запущен. Загрузка данных...');
     Promise.all([
         fetchData('https://omni-base.netlify.app/js/house.js'),
         fetchData('https://omni-base.netlify.app/js/apartments.js')
@@ -293,15 +293,14 @@
         houses = houseData;
         apartments = apartmentData;
         isDataLoaded = true;
-        console.log(`[BLH Compatible] Данные загружены: ${houses.length} домов, ${apartments.length} квартир.`);
+        console.log(`[BLH Ultimate] Данные загружены: ${houses.length} домов, ${apartments.length} квартир.`);
 
         scanAndProcess(document.body);
 
-        // Ваше расширение уже имеет MutationObserver в content.js, который перезапускает скрипты.
-        // Поэтому собственный observer здесь не нужен, чтобы избежать двойной работы.
+        // Observer не нужен, так как content.js из расширения уже делает reinject.
 
     }).catch(error => {
-        console.error("[BLH Compatible] Критическая ошибка загрузки данных:", error);
+        console.error("[BLH Ultimate] Критическая ошибка загрузки данных:", error);
     });
 
 })();
