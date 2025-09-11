@@ -15,10 +15,10 @@
       "enabledDefault": true
     },
      {
-      "id": "set-tstart",
+      "id": "set",
       "name": "аналитика домов",
       "matches": ["https://logs.blackrussia.online/gslogs/*"],
-      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/",
+      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/house",
       "enabledDefault": true
     },
     {
