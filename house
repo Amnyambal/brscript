@@ -1,23 +1,31 @@
 // ==UserScript==
-// @name         Black Log: House & Apartment Helper (Ultimate Edition)
+// @name         Black Log: House & Apartment Helper (BR-Ext Compatible)
 // @namespace    http://tampermonkey.net/
-// @version      3.0
-// @description  Использует продвинутый интерфейс для отображения информации о домах и квартирах из логов.
+// @version      3.2
+// @description  Версия, совместимая с расширением BR Scripts Loader.
 // @author       You
 // @match        https://logs.blackrussia.online/gslogs/*
 // @connect      omni-base.netlify.app
 // @grant        GM_xmlhttpRequest
-// @grant        GM_addStyle
-// @run-at       document-end
-// ==UserScript==
+// ==/UserScript==
 
 (function() {
     'use strict';
 
+    /**
+     * Стандартная функция для добавления CSS на страницу.
+     * Она заменяет GM_addStyle, которой нет в вашем расширении.
+     */
+    function addStyle(css) {
+        const style = document.createElement('style');
+        style.textContent = css;
+        document.head.appendChild(style);
+    }
+
     // -------------------
-    // 1. СТИЛИ И ИНТЕРФЕЙС (Адаптировано из скрипта для трейдов)
+    // 1. СТИЛИ И ИНТЕРФЕЙС
     // -------------------
-    GM_addStyle(`
+    addStyle(`
         :root {
             --blh-bg-main: rgba(26, 26, 26, 0.7);
             --blh-text-primary: #ffffff;
@@ -109,7 +117,7 @@
     `);
 
     // -------------------
-    // 2. ЗАГРУЗКА ДАННЫХ (Из статических файлов)
+    // 2. ЗАГРУЗКА ДАННЫХ (Используется GM_xmlhttpRequest из вашего расширения)
     // -------------------
     let houses = [];
     let apartments = [];
@@ -134,7 +142,7 @@
     }
 
     // -------------------
-    // 3. СОЗДАНИЕ МОДАЛЬНОГО ОКНА (Логика и UI из скрипта для трейдов)
+    // 3. СОЗДАНИЕ МОДАЛЬНОГО ОКНА
     // -------------------
     function createModal(info, type) {
         const modalId = `${type}-${info.id}`;
@@ -180,13 +188,11 @@
         document.body.appendChild(overlay);
         document.body.appendChild(wrapper);
 
-        // Анимация появления
         requestAnimationFrame(() => {
             overlay.classList.add('visible');
             wrapper.classList.add('visible');
         });
 
-        // Логика закрытия
         const closeModal = () => {
             wrapper.classList.remove('visible');
             overlay.classList.remove('visible');
@@ -202,7 +208,6 @@
         modal.querySelector('.blh-modal-close').addEventListener('click', closeModal);
         document.addEventListener('keydown', handleEscKey);
 
-        // Логика перетаскивания
         const header = modal.querySelector('.blh-modal-header');
         let isDragging = false, initialX, initialY;
         header.addEventListener('mousedown', (e) => {
@@ -217,7 +222,7 @@
             if (isDragging) {
                 wrapper.style.left = `${e.clientX - initialX}px`;
                 wrapper.style.top = `${e.clientY - initialY}px`;
-                wrapper.style.transform = 'none'; // Отключаем центрирование
+                wrapper.style.transform = 'none';
             }
         });
         document.addEventListener('mouseup', () => {
@@ -227,7 +232,7 @@
     }
 
     // -------------------
-    // 4. ОСНОВНАЯ ЛОГИКА (Поиск и замена, как в "идеальном" скрипте)
+    // 4. ОСНОВНАЯ ЛОГИКА
     // -------------------
     function enhanceNode(node) {
         const regex = /(дом|квартира) \(sql: (\d+)\)/g;
@@ -244,10 +249,8 @@
             const type = match[1] === 'дом' ? 'house' : 'apartment';
             const sqlId = parseInt(match[2], 10);
 
-            // Текст до совпадения
             fragment.appendChild(document.createTextNode(node.textContent.slice(lastIndex, match.index)));
 
-            // Кнопка
             const btn = document.createElement('button');
             btn.className = 'blh-info-button';
             btn.textContent = match[0];
@@ -265,7 +268,6 @@
             lastIndex = match.index + match[0].length;
         });
 
-        // Оставшийся текст
         fragment.appendChild(document.createTextNode(node.textContent.slice(lastIndex)));
         parent.replaceChild(fragment, node);
     }
@@ -283,7 +285,7 @@
     // -------------------
     // 5. ИНИЦИАЛИЗАЦИЯ
     // -------------------
-    console.log('[BLH Ultimate] Скрипт запущен. Загрузка данных...');
+    console.log('[BLH Compatible] Скрипт запущен. Загрузка данных...');
     Promise.all([
         fetchData('https://omni-base.netlify.app/js/house.js'),
         fetchData('https://omni-base.netlify.app/js/apartments.js')
@@ -291,23 +293,15 @@
         houses = houseData;
         apartments = apartmentData;
         isDataLoaded = true;
-        console.log(`[BLH Ultimate] Данные загружены: ${houses.length} домов, ${apartments.length} квартир.`);
+        console.log(`[BLH Compatible] Данные загружены: ${houses.length} домов, ${apartments.length} квартир.`);
 
         scanAndProcess(document.body);
 
-        const observer = new MutationObserver((mutations) => {
-            for (const mutation of mutations) {
-                for (const addedNode of mutation.addedNodes) {
-                    if (addedNode.nodeType === Node.ELEMENT_NODE) {
-                        scanAndProcess(addedNode);
-                    }
-                }
-            }
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
+        // Ваше расширение уже имеет MutationObserver в content.js, который перезапускает скрипты.
+        // Поэтому собственный observer здесь не нужен, чтобы избежать двойной работы.
 
     }).catch(error => {
-        console.error("[BLH Ultimate] Критическая ошибка загрузки данных:", error);
+        console.error("[BLH Compatible] Критическая ошибка загрузки данных:", error);
     });
 
 })();
