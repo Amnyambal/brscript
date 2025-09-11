@@ -1,0 +1,313 @@
+// ==UserScript==
+// @name         Black Log: House & Apartment Helper
+// @namespace    http://tampermonkey.net/
+// @version      2.0
+// @description  Превращает текст "дом (sql: ID)" и "квартира (sql: ID)" в логах в кнопки, показывающие подробную информацию об объекте.
+// @author       You
+// @match        https://logs.blackrussia.online/gslogs/*
+// @connect      omni-base.netlify.app
+// @grant        GM_xmlhttpRequest
+// @grant        GM_addStyle
+// @run-at       document-end
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // --- 1. СТИЛИ ДЛЯ ИНТЕРФЕЙСА ---
+    // Добавляем CSS для кнопок и модального окна. Стили подобраны под темную тему сайта.
+    GM_addStyle(`
+        .blh-info-button {
+            background-color: #0d6efd;
+            color: white;
+            border: 1px solid #0a58ca;
+            padding: 2px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+        }
+        .blh-info-button:hover {
+            background-color: #0b5ed7;
+        }
+        .blh-info-button:active {
+            transform: scale(0.95);
+        }
+
+        .blh-modal-backdrop {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 1050;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+            pointer-events: none;
+        }
+        .blh-modal-backdrop.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .blh-modal-content {
+            background-color: #2c3034;
+            color: #dee2e6;
+            padding: 25px;
+            border-radius: 8px;
+            width: 550px;
+            max-width: 95%;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+            border: 1px solid #495057;
+            transform: scale(0.9);
+            transition: transform 0.25s ease;
+        }
+        .blh-modal-backdrop.visible .blh-modal-content {
+            transform: scale(1);
+        }
+
+        .blh-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #495057;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .blh-modal-header h3 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #fff;
+        }
+        .blh-modal-close {
+            font-size: 2rem;
+            font-weight: bold;
+            line-height: 1;
+            color: #adb5bd;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0 5px;
+        }
+        .blh-modal-close:hover {
+            color: #fff;
+        }
+
+        .blh-modal-body p {
+            margin: 0 0 12px;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+        .blh-modal-body strong {
+            color: #87ceeb; /* Светло-голубой акцент */
+            min-width: 150px;
+            display: inline-block;
+        }
+    `);
+
+    // --- 2. ЗАГРУЗКА ДАННЫХ ---
+    // Хранилища для данных о недвижимости
+    let houses = [];
+    let apartments = [];
+
+    /**
+     * Асинхронно загружает и парсит JS-массив с удаленного сервера.
+     * @param {string} url - URL для загрузки данных.
+     * @returns {Promise<Array>} - Промис, который разрешается с массивом данных.
+     */
+    function fetchData(url) {
+        return new Promise((resolve, reject) => {
+            GM_xmlhttpRequest({
+                method: "GET",
+                url: url,
+                onload: function(response) {
+                    if (response.status >= 200 && response.status < 300) {
+                        try {
+                            const text = response.responseText;
+                            // Безопасно извлекаем и парсим массив из JS-файла
+                            const arrayString = text.substring(text.indexOf('['));
+                            const data = new Function(`return ${arrayString}`)();
+                            resolve(data);
+                        } catch (e) {
+                            console.error(`Ошибка парсинга данных с ${url}:`, e);
+                            reject(e);
+                        }
+                    } else {
+                        reject(new Error(`HTTP-ошибка ${response.status} при загрузке ${url}`));
+                    }
+                },
+                onerror: function(error) {
+                    reject(new Error(`Сетевая ошибка при загрузке ${url}: ${error}`));
+                }
+            });
+        });
+    }
+
+    // --- 3. ЛОГИКА ОТОБРАЖЕНИЯ ИНФОРМАЦИИ ---
+    /**
+     * Создает и управляет модальным окном для отображения информации.
+     * @param {object} info - Объект с данными о доме или квартире.
+     * @param {'house' | 'apartment'} type - Тип недвижимости.
+     */
+    function createModal(info, type) {
+        // Удаляем старое модальное окно, если оно есть
+        const oldModal = document.getElementById('blh-modal-backdrop');
+        if (oldModal) oldModal.remove();
+
+        const modalBackdrop = document.createElement('div');
+        modalBackdrop.id = 'blh-modal-backdrop';
+        modalBackdrop.className = 'blh-modal-backdrop';
+
+        let contentHtml = '';
+        if (type === 'house') {
+            contentHtml = `
+                <div class="blh-modal-header">
+                    <h3>Дом (ID: ${info.id})</h3>
+                    <button class="blh-modal-close">&times;</button>
+                </div>
+                <div class="blh-modal-body">
+                    <p><strong>Класс:</strong> ${info.class || 'Не указан'}</p>
+                    <p><strong>Цена:</strong> ${info.price.toLocaleString('ru-RU')} ₽</p>
+                    <p><strong>Гараж:</strong> ${info.garage ? 'Есть' : 'Нет'}</p>
+                    <p><strong>Мест в гараже:</strong> ${info.garageslots || 0}</p>
+                </div>`;
+        } else { // apartment
+            contentHtml = `
+                <div class="blh-modal-header">
+                    <h3>Квартира (ID: ${info.id})</h3>
+                    <button class="blh-modal-close">&times;</button>
+                </div>
+                <div class="blh-modal-body">
+                    <p><strong>Название ЖК:</strong> ${info.name || 'Не указано'}</p>
+                    <p><strong>Класс:</strong> ${info.class || 'Не указан'}</p>
+                    <p><strong>Цена:</strong> ${info.price.toLocaleString('ru-RU')} ₽</p>
+                </div>`;
+        }
+
+        modalBackdrop.innerHTML = `<div class="blh-modal-content">${contentHtml}</div>`;
+        document.body.appendChild(modalBackdrop);
+
+        // Плавное появление
+        requestAnimationFrame(() => modalBackdrop.classList.add('visible'));
+
+        const closeModal = () => {
+            modalBackdrop.classList.remove('visible');
+            modalBackdrop.addEventListener('transitionend', () => modalBackdrop.remove(), { once: true });
+        };
+
+        modalBackdrop.querySelector('.blh-modal-close').addEventListener('click', closeModal);
+        modalBackdrop.addEventListener('click', (e) => {
+            if (e.target === modalBackdrop) closeModal();
+        });
+    }
+
+
+    // --- 4. ОСНОВНАЯ ЛОГИКА СКАНИРОВАНИЯ И ЗАМЕНЫ ---
+    /**
+     * Заменяет текстовый узел с упоминанием недвижимости на интерактивную кнопку.
+     * @param {Node} node - Текстовый узел для обработки.
+     */
+    function enhanceNode(node) {
+        const regex = /(дом|квартира) \(sql: (\d+)\)/g;
+        const parent = node.parentNode;
+        if (!parent || parent.nodeName === 'BUTTON') return; // Не обрабатываем кнопки
+
+        let lastIndex = 0;
+        const fragments = document.createDocumentFragment();
+        let match;
+
+        while ((match = regex.exec(node.textContent)) !== null) {
+            // Добавляем текст до совпадения
+            fragments.appendChild(document.createTextNode(node.textContent.slice(lastIndex, match.index)));
+
+            const type = match[1] === 'дом' ? 'house' : 'apartment';
+            const sqlId = parseInt(match[2], 10);
+
+            const button = document.createElement('button');
+            button.className = 'blh-info-button';
+            button.textContent = match[0];
+            button.addEventListener('click', (event) => {
+                event.preventDefault();
+                const dataArray = type === 'house' ? houses : apartments;
+                const info = dataArray.find(item => item.id === sqlId);
+                if (info) {
+                    createModal(info, type);
+                } else {
+                    alert(`Информация для ${type} с ID ${sqlId} не найдена.`);
+                }
+            });
+            fragments.appendChild(button);
+            lastIndex = regex.lastIndex;
+        }
+
+        if (lastIndex > 0) { // Если были совпадения
+            // Добавляем оставшийся текст после всех совпадений
+            fragments.appendChild(document.createTextNode(node.textContent.slice(lastIndex)));
+            parent.replaceChild(fragments, node);
+        }
+    }
+
+    /**
+     * Сканирует DOM на наличие целевого текста и запускает его обработку.
+     * @param {Node} targetNode - Узел, с которого начинается сканирование (обычно document.body).
+     */
+    function scanAndProcess(targetNode) {
+        // Ищем только текстовые узлы, содержащие ключевые слова, для максимальной производительности
+        const walker = document.createTreeWalker(targetNode, NodeFilter.SHOW_TEXT, {
+            acceptNode: (node) => {
+                if (node.textContent.includes(' (sql: ')) {
+                    return NodeFilter.FILTER_ACCEPT;
+                }
+                return NodeFilter.FILTER_REJECT;
+            }
+        });
+
+        // Создаем копию массива узлов, так как DOM будет изменяться
+        const nodesToProcess = [];
+        while (walker.nextNode()) {
+            nodesToProcess.push(walker.currentNode);
+        }
+
+        nodesToProcess.forEach(enhanceNode);
+    }
+
+    // --- 5. ИНИЦИАЛИЗАЦИЯ И ЗАПУСК ---
+    console.log('[Black Log Helper] Скрипт запущен. Загрузка данных...');
+
+    Promise.all([
+        fetchData('https://omni-base.netlify.app/js/house.js'),
+        fetchData('https://omni-base.netlify.app/js/apartments.js')
+    ]).then(([houseData, apartmentData]) => {
+        houses = houseData;
+        apartments = apartmentData;
+        console.log(`[Black Log Helper] Данные успешно загружены: ${houses.length} домов, ${apartments.length} квартир.`);
+
+        // Первичное сканирование страницы после загрузки данных
+        scanAndProcess(document.body);
+
+        // Наблюдатель за изменениями в DOM для отслеживания динамически подгружаемых логов
+        const observer = new MutationObserver((mutations) => {
+            for (const mutation of mutations) {
+                for (const addedNode of mutation.addedNodes) {
+                    if (addedNode.nodeType === Node.ELEMENT_NODE) {
+                        scanAndProcess(addedNode);
+                    }
+                }
+            }
+        });
+
+        // Запускаем наблюдение за всем телом документа
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+
+    }).catch(error => {
+        console.error("[Black Log Helper] Не удалось загрузить критически важные данные. Скрипт не будет работать.", error);
+        alert("Не удалось загрузить данные о недвижимости для скрипта Black Log Helper. Проверьте консоль для подробностей.");
+    });
+
+})();
