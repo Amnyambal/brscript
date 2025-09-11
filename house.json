@@ -1,4 +1,4 @@
-export const allHouses = [
+[
     { id: 440, location: "д. Рублёвка", type: "Премиум класс", price: "25 000 000", garage: "104" },
     { id: 3098, location: "д. Рублёвка", type: "Премиум класс", price: "25 000 000", garage: "109" },
     { id: 3099, location: "д. Рублёвка", type: "Премиум класс", price: "25 000 000", garage: "107" },
