@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Black Log: House Helper (Прокси-версия)
+// @name         Black Log: House Helper (Прокси-версия, фикс для расширения)
 // @namespace    http://tampermonkey.net/
-// @version      7.0
-// @description  Идеальная версия, которая обходит CORS с помощью прокси и работает в любом расширении.
+// @version      7.1
+// @description  Версия с фиксами dataset → setAttribute для работы в расширении без ошибок.
 // @author       You & AI
 // @match        https://logs.blackrussia.online/gslogs/*
 // @grant        none
@@ -20,31 +20,20 @@
         document.head.appendChild(style);
     }
 
-    /**
-     * Функция загрузки данных через публичный CORS-прокси.
-     * Это единственный способ обойти блокировку без Tampermonkey.
-     */
     function fetchData(originalUrl) {
-        // Используем бесплатный прокси-сервис allorigins.win
         const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(originalUrl)}`;
-
         return fetch(proxyUrl)
             .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Сетевая ошибка прокси: ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`Сетевая ошибка прокси: ${response.status}`);
                 return response.text();
             })
             .then(text => {
-                // Проверяем, не вернул ли прокси ошибку в виде JSON
                 try {
                     const errorCheck = JSON.parse(text);
                     if (errorCheck && errorCheck.contents && errorCheck.contents.includes('error')) {
-                         throw new Error('Прокси не смог загрузить данные.');
+                        throw new Error('Прокси не смог загрузить данные.');
                     }
-                } catch(e) {
-                    // Если это не JSON, значит, все в порядке, это наш JS-код
-                }
+                } catch(e) { /* игнор, значит это не JSON */ }
                 const arrayString = text.substring(text.indexOf('['));
                 return new Function(`return ${arrayString}`)();
             });
@@ -162,6 +151,7 @@
                 wrapper.style.left = `${e.clientX - initialX}px`;
                 wrapper.style.top = `${e.clientY - initialY}px`;
                 wrapper.style.transform = 'none';
+                wrapper.style.position = 'absolute';
             }
         });
         document.addEventListener('mouseup', () => {
@@ -170,7 +160,7 @@
         });
     }
 
-    // --- 4. ОСНОВНАЯ ЛОГИКА (КАК В ТРЕЙДАХ) ---
+    // --- 4. ОСНОВНАЯ ЛОГИКА ---
     function attachHouseButtons() {
         if (!isDataLoaded) return;
         const propertyRegex = /(дом|квартира) \(sql: (\d+)\)/g;
@@ -179,12 +169,11 @@
                 const matches = [...td.innerHTML.matchAll(propertyRegex)];
                 const uniqueProperties = new Map();
                 matches.forEach(match => {
-                    const fullText = match[0];
                     const type = match[1] === 'дом' ? 'house' : 'apartment';
                     const sqlId = parseInt(match[2], 10);
-                    uniqueProperties.set(fullText, { type, sqlId });
+                    uniqueProperties.set(match[0], { type, sqlId });
                 });
-                uniqueProperties.forEach(({ type, sqlId }, fullText) => {
+                uniqueProperties.forEach(({ type, sqlId }) => {
                     if (td.querySelector(`.blh-info-button[data-id='${sqlId}']`)) return;
                     const btn = document.createElement('button');
                     btn.className = 'blh-info-button';
@@ -203,7 +192,7 @@
                     td.appendChild(btn);
                 });
             }
-            td.dataset.blhProcessed = 'true';
+            td.setAttribute("data-blh-processed", "true"); // фикс вместо dataset
         });
     }
 
