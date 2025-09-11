@@ -1,294 +1,300 @@
 // ==UserScript==
-// @name         Black Log: House & Apartment Helper
+// @name         Black Log: House & Apartment Helper (Ultimate Edition)
 // @namespace    http://tampermonkey.net/
-// @version      2.0
-// @description  Превращает текст "дом (sql: ID)" и "квартира (sql: ID)" в логах в кнопки, показывающие подробную информацию об объекте.
+// @version      3.0
+// @description  Использует продвинутый интерфейс для отображения информации о домах и квартирах из логов.
 // @author       You
 // @match        https://logs.blackrussia.online/gslogs/*
 // @connect      omni-base.netlify.app
 // @grant        GM_xmlhttpRequest
 // @grant        GM_addStyle
 // @run-at       document-end
-// ==/UserScript==
+// ==UserScript==
 
 (function() {
     'use strict';
 
-    // --- 1. СТИЛИ ДЛЯ ИНТЕРФЕЙСА ---
-    // Добавляем CSS для кнопок и модального окна. Стили подобраны под темную тему сайта.
+    // -------------------
+    // 1. СТИЛИ И ИНТЕРФЕЙС (Адаптировано из скрипта для трейдов)
+    // -------------------
     GM_addStyle(`
+        :root {
+            --blh-bg-main: rgba(26, 26, 26, 0.7);
+            --blh-text-primary: #ffffff;
+            --blh-text-secondary: #cccccc;
+            --blh-text-highlight: #2b8cff;
+            --blh-primary-gradient: linear-gradient(145deg, #0d6efd, #0a58ca);
+            --blh-border-color: rgba(255, 255, 255, 0.1);
+            --blh-shadow: 0 10px 35px rgba(0,0,0,.5);
+            --blh-radius: 12px;
+            --blh-font-family: 'Segoe UI', sans-serif;
+            --blh-transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
         .blh-info-button {
-            background-color: #0d6efd;
+            background: var(--blh-primary-gradient);
             color: white;
-            border: 1px solid #0a58ca;
-            padding: 2px 8px;
-            border-radius: 4px;
+            border: none;
+            padding: 4px 10px;
+            margin: 0 2px;
+            font-size: 12px;
+            border-radius: 8px;
             cursor: pointer;
-            font-weight: 500;
-            transition: background-color 0.2s ease, transform 0.1s ease;
+            transition: transform var(--blh-transition), box-shadow var(--blh-transition);
         }
         .blh-info-button:hover {
-            background-color: #0b5ed7;
-        }
-        .blh-info-button:active {
-            transform: scale(0.95);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(43, 140, 255, 0.3);
         }
 
-        .blh-modal-backdrop {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: rgba(0, 0, 0, 0.6);
-            z-index: 1050;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        .blh-modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.6);
+            z-index: 9999;
+            backdrop-filter: blur(4px);
             opacity: 0;
-            transition: opacity 0.25s ease;
+            transition: opacity var(--blh-transition);
             pointer-events: none;
         }
-        .blh-modal-backdrop.visible {
-            opacity: 1;
-            pointer-events: auto;
+        .blh-modal-overlay.visible { opacity: 1; pointer-events: auto; }
+
+        .blh-wrapper {
+            position: fixed; z-index: 10000; inset: 0;
+            display: flex; justify-content: center; align-items: center;
+            padding: 16px;
         }
 
-        .blh-modal-content {
-            background-color: #2c3034;
-            color: #dee2e6;
-            padding: 25px;
-            border-radius: 8px;
-            width: 550px;
-            max-width: 95%;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
-            border: 1px solid #495057;
-            transform: scale(0.9);
-            transition: transform 0.25s ease;
+        .blh-modal {
+            background: var(--blh-bg-main);
+            color: var(--blh-text-primary);
+            box-shadow: var(--blh-shadow);
+            width: 95%; max-width: 600px;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex; flex-direction: column;
+            font-family: var(--blh-font-family);
+            border: 1px solid var(--blh-border-color);
+            backdrop-filter: blur(15px);
+            border-radius: var(--blh-radius);
+            opacity: 0;
+            transform: scale(0.95);
+            transition: opacity var(--blh-transition), transform var(--blh-transition);
         }
-        .blh-modal-backdrop.visible .blh-modal-content {
-            transform: scale(1);
-        }
+        .blh-wrapper.visible .blh-modal { opacity: 1; transform: scale(1); }
 
         .blh-modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #495057;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--blh-border-color);
+            cursor: move; /* Для перетаскивания */
         }
-        .blh-modal-header h3 {
-            margin: 0;
-            font-size: 1.5rem;
-            color: #fff;
-        }
+        .blh-modal-title { font-size: 18px; font-weight: 600; color: var(--blh-text-highlight); margin: 0; }
         .blh-modal-close {
-            font-size: 2rem;
-            font-weight: bold;
-            line-height: 1;
-            color: #adb5bd;
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 0 5px;
+            background: transparent; border: none; color: var(--blh-text-secondary);
+            font-size: 28px; line-height: 1; padding: 0 8px; cursor: pointer;
+            transition: color var(--blh-transition), transform var(--blh-transition);
         }
-        .blh-modal-close:hover {
-            color: #fff;
-        }
+        .blh-modal-close:hover { color: #fff; transform: rotate(90deg); }
 
-        .blh-modal-body p {
-            margin: 0 0 12px;
-            font-size: 1.1rem;
-            line-height: 1.6;
+        .blh-modal-content {
+            overflow-y: auto; padding: 24px;
         }
-        .blh-modal-body strong {
-            color: #87ceeb; /* Светло-голубой акцент */
-            min-width: 150px;
-            display: inline-block;
+        .blh-modal-content p {
+            margin: 0 0 14px; font-size: 1.1rem; line-height: 1.6;
+            display: flex;
+        }
+        .blh-modal-content strong {
+            color: #87ceeb; min-width: 160px; display: inline-block;
         }
     `);
 
-    // --- 2. ЗАГРУЗКА ДАННЫХ ---
-    // Хранилища для данных о недвижимости
+    // -------------------
+    // 2. ЗАГРУЗКА ДАННЫХ (Из статических файлов)
+    // -------------------
     let houses = [];
     let apartments = [];
+    let isDataLoaded = false;
 
-    /**
-     * Асинхронно загружает и парсит JS-массив с удаленного сервера.
-     * @param {string} url - URL для загрузки данных.
-     * @returns {Promise<Array>} - Промис, который разрешается с массивом данных.
-     */
     function fetchData(url) {
         return new Promise((resolve, reject) => {
             GM_xmlhttpRequest({
-                method: "GET",
-                url: url,
-                onload: function(response) {
-                    if (response.status >= 200 && response.status < 300) {
+                method: "GET", url,
+                onload: res => {
+                    if (res.status >= 200 && res.status < 300) {
                         try {
-                            const text = response.responseText;
-                            // Безопасно извлекаем и парсим массив из JS-файла
+                            const text = res.responseText;
                             const arrayString = text.substring(text.indexOf('['));
-                            const data = new Function(`return ${arrayString}`)();
-                            resolve(data);
-                        } catch (e) {
-                            console.error(`Ошибка парсинга данных с ${url}:`, e);
-                            reject(e);
-                        }
-                    } else {
-                        reject(new Error(`HTTP-ошибка ${response.status} при загрузке ${url}`));
-                    }
+                            resolve(new Function(`return ${arrayString}`)());
+                        } catch (e) { reject(e); }
+                    } else { reject(new Error(`HTTP error ${res.status}`)); }
                 },
-                onerror: function(error) {
-                    reject(new Error(`Сетевая ошибка при загрузке ${url}: ${error}`));
-                }
+                onerror: err => reject(err)
             });
         });
     }
 
-    // --- 3. ЛОГИКА ОТОБРАЖЕНИЯ ИНФОРМАЦИИ ---
-    /**
-     * Создает и управляет модальным окном для отображения информации.
-     * @param {object} info - Объект с данными о доме или квартире.
-     * @param {'house' | 'apartment'} type - Тип недвижимости.
-     */
+    // -------------------
+    // 3. СОЗДАНИЕ МОДАЛЬНОГО ОКНА (Логика и UI из скрипта для трейдов)
+    // -------------------
     function createModal(info, type) {
-        // Удаляем старое модальное окно, если оно есть
-        const oldModal = document.getElementById('blh-modal-backdrop');
-        if (oldModal) oldModal.remove();
+        const modalId = `${type}-${info.id}`;
+        if (document.querySelector(`.blh-wrapper[data-id='${modalId}']`)) return;
 
-        const modalBackdrop = document.createElement('div');
-        modalBackdrop.id = 'blh-modal-backdrop';
-        modalBackdrop.className = 'blh-modal-backdrop';
+        const overlay = document.createElement("div");
+        overlay.className = "blh-modal-overlay";
 
+        const wrapper = document.createElement("div");
+        wrapper.className = "blh-wrapper";
+        wrapper.dataset.id = modalId;
+
+        const modal = document.createElement("div");
+        modal.className = "blh-modal";
+
+        let titleText = type === 'house' ? `Дом #${info.id}` : `Квартира #${info.id}`;
         let contentHtml = '';
+
         if (type === 'house') {
             contentHtml = `
-                <div class="blh-modal-header">
-                    <h3>Дом (ID: ${info.id})</h3>
-                    <button class="blh-modal-close">&times;</button>
-                </div>
-                <div class="blh-modal-body">
-                    <p><strong>Класс:</strong> ${info.class || 'Не указан'}</p>
-                    <p><strong>Цена:</strong> ${info.price.toLocaleString('ru-RU')} ₽</p>
-                    <p><strong>Гараж:</strong> ${info.garage ? 'Есть' : 'Нет'}</p>
-                    <p><strong>Мест в гараже:</strong> ${info.garageslots || 0}</p>
-                </div>`;
-        } else { // apartment
+                <p><strong>Класс:</strong> ${info.class || 'Не указан'}</p>
+                <p><strong>Цена:</strong> ${info.price.toLocaleString('ru-RU')} ₽</p>
+                <p><strong>Гараж:</strong> ${info.garage ? 'Есть' : 'Нет'}</p>
+                <p><strong>Мест в гараже:</strong> ${info.garageslots || 0}</p>
+            `;
+        } else {
             contentHtml = `
-                <div class="blh-modal-header">
-                    <h3>Квартира (ID: ${info.id})</h3>
-                    <button class="blh-modal-close">&times;</button>
-                </div>
-                <div class="blh-modal-body">
-                    <p><strong>Название ЖК:</strong> ${info.name || 'Не указано'}</p>
-                    <p><strong>Класс:</strong> ${info.class || 'Не указан'}</p>
-                    <p><strong>Цена:</strong> ${info.price.toLocaleString('ru-RU')} ₽</p>
-                </div>`;
+                <p><strong>Название ЖК:</strong> ${info.name || 'Не указано'}</p>
+                <p><strong>Класс:</strong> ${info.class || 'Не указан'}</p>
+                <p><strong>Цена:</strong> ${info.price.toLocaleString('ru-RU')} ₽</p>
+            `;
         }
 
-        modalBackdrop.innerHTML = `<div class="blh-modal-content">${contentHtml}</div>`;
-        document.body.appendChild(modalBackdrop);
+        modal.innerHTML = `
+            <div class="blh-modal-header">
+                <h3 class="blh-modal-title">${titleText}</h3>
+                <button class="blh-modal-close" aria-label="Закрыть">&times;</button>
+            </div>
+            <div class="blh-modal-content">${contentHtml}</div>
+        `;
 
-        // Плавное появление
-        requestAnimationFrame(() => modalBackdrop.classList.add('visible'));
+        wrapper.appendChild(modal);
+        document.body.appendChild(overlay);
+        document.body.appendChild(wrapper);
 
+        // Анимация появления
+        requestAnimationFrame(() => {
+            overlay.classList.add('visible');
+            wrapper.classList.add('visible');
+        });
+
+        // Логика закрытия
         const closeModal = () => {
-            modalBackdrop.classList.remove('visible');
-            modalBackdrop.addEventListener('transitionend', () => modalBackdrop.remove(), { once: true });
+            wrapper.classList.remove('visible');
+            overlay.classList.remove('visible');
+            wrapper.addEventListener('transitionend', () => {
+                wrapper.remove();
+                overlay.remove();
+                document.removeEventListener('keydown', handleEscKey);
+            }, { once: true });
         };
 
-        modalBackdrop.querySelector('.blh-modal-close').addEventListener('click', closeModal);
-        modalBackdrop.addEventListener('click', (e) => {
-            if (e.target === modalBackdrop) closeModal();
+        const handleEscKey = (e) => e.key === 'Escape' && closeModal();
+        overlay.addEventListener('click', closeModal);
+        modal.querySelector('.blh-modal-close').addEventListener('click', closeModal);
+        document.addEventListener('keydown', handleEscKey);
+
+        // Логика перетаскивания
+        const header = modal.querySelector('.blh-modal-header');
+        let isDragging = false, initialX, initialY;
+        header.addEventListener('mousedown', (e) => {
+            if (e.target.classList.contains('blh-modal-close')) return;
+            const rect = wrapper.getBoundingClientRect();
+            initialX = e.clientX - rect.left;
+            initialY = e.clientY - rect.top;
+            isDragging = true;
+            document.body.style.userSelect = 'none';
+        });
+        document.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                wrapper.style.left = `${e.clientX - initialX}px`;
+                wrapper.style.top = `${e.clientY - initialY}px`;
+                wrapper.style.transform = 'none'; // Отключаем центрирование
+            }
+        });
+        document.addEventListener('mouseup', () => {
+            isDragging = false;
+            document.body.style.userSelect = '';
         });
     }
 
-
-    // --- 4. ОСНОВНАЯ ЛОГИКА СКАНИРОВАНИЯ И ЗАМЕНЫ ---
-    /**
-     * Заменяет текстовый узел с упоминанием недвижимости на интерактивную кнопку.
-     * @param {Node} node - Текстовый узел для обработки.
-     */
+    // -------------------
+    // 4. ОСНОВНАЯ ЛОГИКА (Поиск и замена, как в "идеальном" скрипте)
+    // -------------------
     function enhanceNode(node) {
         const regex = /(дом|квартира) \(sql: (\d+)\)/g;
         const parent = node.parentNode;
-        if (!parent || parent.nodeName === 'BUTTON') return; // Не обрабатываем кнопки
+        if (!parent || ['BUTTON', 'STYLE', 'SCRIPT'].includes(parent.nodeName)) return;
 
+        const matches = [...node.textContent.matchAll(regex)];
+        if (matches.length === 0) return;
+
+        const fragment = document.createDocumentFragment();
         let lastIndex = 0;
-        const fragments = document.createDocumentFragment();
-        let match;
 
-        while ((match = regex.exec(node.textContent)) !== null) {
-            // Добавляем текст до совпадения
-            fragments.appendChild(document.createTextNode(node.textContent.slice(lastIndex, match.index)));
-
+        matches.forEach(match => {
             const type = match[1] === 'дом' ? 'house' : 'apartment';
             const sqlId = parseInt(match[2], 10);
 
-            const button = document.createElement('button');
-            button.className = 'blh-info-button';
-            button.textContent = match[0];
-            button.addEventListener('click', (event) => {
-                event.preventDefault();
+            // Текст до совпадения
+            fragment.appendChild(document.createTextNode(node.textContent.slice(lastIndex, match.index)));
+
+            // Кнопка
+            const btn = document.createElement('button');
+            btn.className = 'blh-info-button';
+            btn.textContent = match[0];
+            btn.onclick = (e) => {
+                e.stopPropagation();
                 const dataArray = type === 'house' ? houses : apartments;
                 const info = dataArray.find(item => item.id === sqlId);
                 if (info) {
                     createModal(info, type);
                 } else {
-                    alert(`Информация для ${type} с ID ${sqlId} не найдена.`);
+                    alert(`Информация для ID ${sqlId} не найдена.`);
                 }
-            });
-            fragments.appendChild(button);
-            lastIndex = regex.lastIndex;
-        }
-
-        if (lastIndex > 0) { // Если были совпадения
-            // Добавляем оставшийся текст после всех совпадений
-            fragments.appendChild(document.createTextNode(node.textContent.slice(lastIndex)));
-            parent.replaceChild(fragments, node);
-        }
-    }
-
-    /**
-     * Сканирует DOM на наличие целевого текста и запускает его обработку.
-     * @param {Node} targetNode - Узел, с которого начинается сканирование (обычно document.body).
-     */
-    function scanAndProcess(targetNode) {
-        // Ищем только текстовые узлы, содержащие ключевые слова, для максимальной производительности
-        const walker = document.createTreeWalker(targetNode, NodeFilter.SHOW_TEXT, {
-            acceptNode: (node) => {
-                if (node.textContent.includes(' (sql: ')) {
-                    return NodeFilter.FILTER_ACCEPT;
-                }
-                return NodeFilter.FILTER_REJECT;
-            }
+            };
+            fragment.appendChild(btn);
+            lastIndex = match.index + match[0].length;
         });
 
-        // Создаем копию массива узлов, так как DOM будет изменяться
-        const nodesToProcess = [];
-        while (walker.nextNode()) {
-            nodesToProcess.push(walker.currentNode);
-        }
-
-        nodesToProcess.forEach(enhanceNode);
+        // Оставшийся текст
+        fragment.appendChild(document.createTextNode(node.textContent.slice(lastIndex)));
+        parent.replaceChild(fragment, node);
     }
 
-    // --- 5. ИНИЦИАЛИЗАЦИЯ И ЗАПУСК ---
-    console.log('[Black Log Helper] Скрипт запущен. Загрузка данных...');
+    function scanAndProcess(targetNode) {
+        if (!isDataLoaded) return;
+        const walker = document.createTreeWalker(targetNode, NodeFilter.SHOW_TEXT, {
+            acceptNode: (node) => (node.textContent.includes(' (sql: ') ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT)
+        });
+        const nodes = [];
+        while (walker.nextNode()) nodes.push(walker.currentNode);
+        nodes.forEach(enhanceNode);
+    }
 
+    // -------------------
+    // 5. ИНИЦИАЛИЗАЦИЯ
+    // -------------------
+    console.log('[BLH Ultimate] Скрипт запущен. Загрузка данных...');
     Promise.all([
         fetchData('https://omni-base.netlify.app/js/house.js'),
         fetchData('https://omni-base.netlify.app/js/apartments.js')
     ]).then(([houseData, apartmentData]) => {
         houses = houseData;
         apartments = apartmentData;
-        console.log(`[Black Log Helper] Данные успешно загружены: ${houses.length} домов, ${apartments.length} квартир.`);
+        isDataLoaded = true;
+        console.log(`[BLH Ultimate] Данные загружены: ${houses.length} домов, ${apartments.length} квартир.`);
 
-        // Первичное сканирование страницы после загрузки данных
         scanAndProcess(document.body);
 
-        // Наблюдатель за изменениями в DOM для отслеживания динамически подгружаемых логов
         const observer = new MutationObserver((mutations) => {
             for (const mutation of mutations) {
                 for (const addedNode of mutation.addedNodes) {
@@ -298,16 +304,10 @@
                 }
             }
         });
-
-        // Запускаем наблюдение за всем телом документа
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
+        observer.observe(document.body, { childList: true, subtree: true });
 
     }).catch(error => {
-        console.error("[Black Log Helper] Не удалось загрузить критически важные данные. Скрипт не будет работать.", error);
-        alert("Не удалось загрузить данные о недвижимости для скрипта Black Log Helper. Проверьте консоль для подробностей.");
+        console.error("[BLH Ultimate] Критическая ошибка загрузки данных:", error);
     });
 
 })();
