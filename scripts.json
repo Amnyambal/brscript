@@ -14,13 +14,6 @@
       "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/baninfo.js",
       "enabledDefault": true
     },
-     {
-      "id": "set",
-      "name": "аналитика домов",
-      "matches": ["https://logs.blackrussia.online/gslogs/*"],
-      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/house",
-      "enabledDefault": true
-    },
     {
       "id": "forumbtns",
       "name": "Форумный скрипт для техов",
