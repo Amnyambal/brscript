@@ -15,6 +15,13 @@
       "enabledDefault": true
     },
     {
+      "id": "poisk",
+      "name": "Поиск по серверам (Для ЗГТС)",
+      "matches": ["https://logs.blackrussia.online/gslogs/*"],
+      "url": "",
+      "enabledDefault": true
+    },
+    {
       "id": "forumbtns",
       "name": "Форумный скрипт для техов",
       "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/forum-buttons.js",
