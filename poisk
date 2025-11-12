@@ -1,0 +1,291 @@
+// ==UserScript==
+// @name         BlackRussia Server Search
+// @namespace    http://tampermonkey.net/
+// @version      1.0
+// @description  Добавляет поиск серверов на странице BlackRussia логов
+// @author       You
+// @match        https://logs.blackrussia.online/gslogs/
+// @grant        none
+// @run-at       document-idle
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // Ждем загрузки страницы
+    window.addEventListener('load', function() {
+        const serverList = document.getElementById('accessible-server-list');
+        if (!serverList) return;
+
+        // Создаем стили
+        const style = document.createElement('style');
+        style.textContent = `
+            .search-container {
+                position: relative;
+                margin: 25px 0;
+                max-width: 500px;
+            }
+
+            .search-input {
+                width: 100%;
+                padding: 14px 45px 14px 20px;
+                font-size: 16px;
+                font-family: 'Roboto', sans-serif;
+                background: #1e1e1e;
+                border: 2px solid #2d2d2d;
+                border-radius: 12px;
+                color: #e0e0e0;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            }
+
+            .search-input:focus {
+                outline: none;
+                border-color: #4a9eff;
+                box-shadow: 0 0 0 3px rgba(74, 158, 255, 0.2);
+                background: #252525;
+            }
+
+            .search-input::placeholder {
+                color: #6c757d;
+                font-weight: 300;
+            }
+
+            .search-icon {
+                position: absolute;
+                right: 15px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: #6c757d;
+                font-size: 18px;
+                pointer-events: none;
+                transition: color 0.3s ease;
+            }
+
+            .search-input:focus + .search-icon {
+                color: #4a9eff;
+            }
+
+            .search-counter {
+                position: absolute;
+                right: 45px;
+                top: 50%;
+                transform: translateY(-50%);
+                font-size: 13px;
+                color: #adb5bd;
+                background: #2d2d2d;
+                padding: 3px 8px;
+                border-radius: 10px;
+                font-weight: 500;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+
+            .search-counter.visible {
+                opacity: 1;
+            }
+
+            .accessible-server {
+                transition: transform 0.3s ease, opacity 0.3s ease, max-height 0.3s ease;
+                margin-bottom: 10px;
+            }
+
+            .accessible-server.filtered-out {
+                opacity: 0;
+                transform: translateX(-20px);
+                max-height: 0;
+                margin: 0;
+                overflow: hidden;
+            }
+
+            .game-logs-link {
+                display: block;
+                padding: 16px 20px;
+                background: linear-gradient(135deg, #2d2d2d 0%, #252525 100%);
+                border-radius: 10px;
+                transition: all 0.3s ease;
+                text-decoration: none;
+                color: #e0e0e0;
+                font-weight: 500;
+                border: 1px solid #3d3d3d;
+                position: relative;
+                overflow: hidden;
+            }
+
+            .game-logs-link:hover {
+                background: linear-gradient(135deg, #3d3d3d 0%, #353535 100%);
+                transform: translateX(5px);
+                border-color: #4a9eff;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            }
+
+            .game-logs-link::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(90deg, transparent, rgba(74, 158, 255, 0.1), transparent);
+                transition: left 0.6s;
+            }
+
+            .game-logs-link:hover::before {
+                left: 100%;
+            }
+
+            .highlight {
+                background: linear-gradient(120deg, #4a9eff 0%, #357abd 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+                font-weight: 600;
+                text-shadow: 0 0 10px rgba(74, 158, 255, 0.3);
+            }
+
+            .no-results {
+                text-align: center;
+                padding: 40px 20px;
+                color: #6c757d;
+                font-size: 16px;
+                font-weight: 300;
+                opacity: 0;
+                animation: fadeIn 0.5s forwards;
+            }
+
+            .no-results i {
+                font-size: 48px;
+                margin-bottom: 15px;
+                display: block;
+                opacity: 0.5;
+            }
+
+            @keyframes fadeIn {
+                to {
+                    opacity: 1;
+                }
+            }
+
+            .server-badge {
+                display: inline-block;
+                background: linear-gradient(135deg, #4a9eff 0%, #357abd 100%);
+                color: white;
+                padding: 2px 8px;
+                border-radius: 5px;
+                font-size: 12px;
+                font-weight: 600;
+                margin-left: 10px;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            }
+        `;
+        document.head.appendChild(style);
+
+        // Создаем контейнер для поиска
+        const searchContainer = document.createElement('div');
+        searchContainer.className = 'search-container';
+
+        // Создаем поле ввода
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.className = 'search-input';
+        searchInput.placeholder = 'Поиск серверов (название или номер)...';
+
+        // Создаем иконку поиска
+        const searchIcon = document.createElement('i');
+        searchIcon.className = 'search-icon bi bi-search';
+
+        // Создаем счетчик
+        const searchCounter = document.createElement('span');
+        searchCounter.className = 'search-counter';
+
+        // Собираем элементы
+        searchContainer.appendChild(searchInput);
+        searchContainer.appendChild(searchIcon);
+        searchContainer.appendChild(searchCounter);
+
+        // Вставляем перед списком серверов
+        serverList.parentNode.insertBefore(searchContainer, serverList);
+
+        // Функция для подсветки текста
+        function highlightText(text, searchTerm) {
+            if (!searchTerm) return text;
+            const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+            return text.replace(regex, '<span class="highlight">$1</span>');
+        }
+
+        // Функция фильтрации
+        function filterServers() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const servers = serverList.querySelectorAll('.accessible-server');
+            let visibleCount = 0;
+
+            servers.forEach(server => {
+                const link = server.querySelector('.game-logs-link');
+                const serverText = link.textContent.toLowerCase();
+
+                if (serverText.includes(searchTerm)) {
+                    server.classList.remove('filtered-out');
+                    visibleCount++;
+                } else {
+                    server.classList.add('filtered-out');
+                }
+            });
+
+            // Обновляем счетчик
+            if (searchTerm) {
+                searchCounter.textContent = `${visibleCount}/${servers.length}`;
+                searchCounter.classList.add('visible');
+            } else {
+                searchCounter.classList.remove('visible');
+            }
+
+            // Подсвечиваем совпадения
+            servers.forEach(server => {
+                const link = server.querySelector('.game-logs-link');
+                if (!server.classList.contains('filtered-out')) {
+                    link.innerHTML = highlightText(link.textContent, searchTerm);
+                } else {
+                    link.innerHTML = link.textContent;
+                }
+            });
+
+            // Добавляем сообщение "не найдено"
+            let noResults = serverList.parentNode.querySelector('.no-results');
+            if (visibleCount === 0 && searchTerm) {
+                if (!noResults) {
+                    noResults = document.createElement('div');
+                    noResults.className = 'no-results';
+                    noResults.innerHTML = `
+                        <i class="bi bi-search"></i>
+                        <div>Сервера по запросу "<strong>${searchTerm}</strong>" не найдены</div>
+                    `;
+                    serverList.parentNode.appendChild(noResults);
+                }
+            } else if (noResults) {
+                noResults.remove();
+            }
+        }
+
+        // Добавляем обработчик ввода с задержкой
+        let searchTimeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(filterServers, 150);
+        });
+
+        // Очистка по Escape
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                searchInput.value = '';
+                filterServers();
+                searchInput.blur();
+            }
+        });
+
+        // Автофокус на поле поиска
+        searchInput.focus();
+
+        // Добавляем тултип с подсказками
+        searchInput.title = 'Подсказки: введите название или номер сервера. Esc - очистить';
+    });
+})();
