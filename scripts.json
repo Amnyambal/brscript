@@ -18,7 +18,7 @@
       "id": "poisk",
       "name": "Поиск по серверам (Для ЗГТС)",
       "matches": ["https://logs.blackrussia.online/gslogs/*"],
-      "url": "",
+      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/refs/heads/main/poisk",
       "enabledDefault": true
     },
     {
