@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         BlackRussia Server Search
 // @namespace    http://tampermonkey.net/
-// @version      1.0
+// @version      1.1
 // @description  Добавляет поиск серверов на странице BlackRussia логов
 // @author       You
 // @match        https://logs.blackrussia.online/gslogs/
@@ -12,10 +12,22 @@
 (function() {
     'use strict';
 
+    // Проверка, что мы на нужной странице
+    if (!window.location.href.match(/^https:\/\/logs\.blackrussia\.online\/gslogs\/$/)) {
+        return;
+    }
+
     // Ждем загрузки страницы
-    window.addEventListener('load', function() {
+    function initWhenReady() {
         const serverList = document.getElementById('accessible-server-list');
-        if (!serverList) return;
+        if (!serverList) {
+            setTimeout(initWhenReady, 100);
+            return;
+        }
+
+        // Проверяем, не запущен ли скрипт уже
+        if (window.brServerSearchInitialized) return;
+        window.brServerSearchInitialized = true;
 
         // Создаем стили
         const style = document.createElement('style');
@@ -165,18 +177,6 @@
                     opacity: 1;
                 }
             }
-
-            .server-badge {
-                display: inline-block;
-                background: linear-gradient(135deg, #4a9eff 0%, #357abd 100%);
-                color: white;
-                padding: 2px 8px;
-                border-radius: 5px;
-                font-size: 12px;
-                font-weight: 600;
-                margin-left: 10px;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            }
         `;
         document.head.appendChild(style);
 
@@ -204,7 +204,12 @@
         searchContainer.appendChild(searchCounter);
 
         // Вставляем перед списком серверов
-        serverList.parentNode.insertBefore(searchContainer, serverList);
+        const pageIntro = document.querySelector('.page-intro');
+        if (pageIntro) {
+            pageIntro.insertAdjacentElement('afterend', searchContainer);
+        } else {
+            serverList.parentNode.insertBefore(searchContainer, serverList);
+        }
 
         // Функция для подсветки текста
         function highlightText(text, searchTerm) {
@@ -283,9 +288,13 @@
         });
 
         // Автофокус на поле поиска
-        searchInput.focus();
+        setTimeout(() => searchInput.focus(), 100);
+    }
 
-        // Добавляем тултип с подсказками
-        searchInput.title = 'Подсказки: введите название или номер сервера. Esc - очистить';
-    });
+    // Запускаем инициализацию
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+        initWhenReady();
+    } else {
+        document.addEventListener('DOMContentLoaded', initWhenReady);
+    }
 })();
