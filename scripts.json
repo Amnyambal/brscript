@@ -23,7 +23,7 @@
     },
     {
       "id": "home",
-      "name": "Домики",
+      "name": "Домики (Показывает местоположение домов)",
       "matches": ["https://logs.blackrussia.online/gslogs/*"],
       "url": "https://raw.githubusercontent.com/Amnyambal/brscript/refs/heads/main/house",
       "enabledDefault": true
