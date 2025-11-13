@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Black Log: House & Apartment Helper
 // @namespace    http://tampermonkey.net/
-// @version      1.4
-// @description  Выделяет ID домов и квартир в логах цветом. При клике показывает модалку с локацией, ценой, классом и т.д. Один файл, чистый код. Исправлена загрузка невалидного JSON. Делегированный клик для надежности. Поиск в обоих JSON, т.к. в логах всегда "Дом". Оптимизация: только одна модалка за раз, удаление предыдущей.
+// @version      1.5
+// @description  Выделяет ID домов и квартир в логах цветом. При клике показывает модалку с локацией, ценой, классом и т.д. Один файл, чистый код. Исправлена загрузка невалидного JSON. Делегированный клик для надежности. Поиск в обоих JSON, т.к. в логах всегда "Дом". Оптимизация: только одна модалка за раз, удаление предыдущей. Улучшенный regex для всех форматов ID.
 // @author       Grok
 // @match        https://logs.blackrussia.online/gslogs/*
 // @grant        none
@@ -256,16 +256,28 @@
         cell.classList.add('blh-processed');
 
         const html = cell.innerHTML;
-        const propertyRegex = /(Дом|Квартира) \(sql: (\d+)\)/gi;
+        // Regex для всех форматов: дом/дома/Дом + ID, (sql: ID), №ID, [SQL ID: ID]
+        const propertyRegex = /(\b(Дом|дома|дом|Квартира|квартиры|квартира)\b\s*(?:№|sql:\s*|SQL ID:\s*)?(\d+))/gi;
 
         let newHtml = html;
         propertyRegex.lastIndex = 0; // Reset
         let match;
         while ((match = propertyRegex.exec(html)) !== null) {
+            const fullMatch = match[0];
             const word = match[1];
             const id = match[2];
-            const replacement = `<span class="blh-id" data-id="${id}">(sql: ${id})</span>`;
-            newHtml = newHtml.replace(match[0], word + ' ' + replacement);
+            // Заменять только ID на span, оставляя слово
+            const replacement = `${word} <span class="blh-id" data-id="${id}">${fullMatch.replace(word, '').trim() || id}</span>`;
+            newHtml = newHtml.replace(fullMatch, replacement);
+        }
+
+        // Отдельный regex для [SQL ID: ID] без слова перед
+        const sqlIdRegex = /\[SQL ID:\s*(\d+)\]/gi;
+        sqlIdRegex.lastIndex = 0;
+        while ((match = sqlIdRegex.exec(newHtml)) !== null) {
+            const fullMatch = match[0];
+            const id = match[1];
+            newHtml = newHtml.replace(fullMatch, `<span class="blh-id" data-id="${id}">${fullMatch}</span>`);
         }
 
         if (newHtml !== html) {
@@ -321,6 +333,6 @@
         document.querySelectorAll('.td-transaction-desc').forEach(processCell);
         initObserver();
         initClickHandler();
-        console.log('[BLH] Готов к работе! Клик-handler делегирован. Поиск в обоих JSON. Только одна модалка за раз.');
+        console.log('[BLH] Готов к работе! Клик-handler делегирован. Поиск в обоих JSON. Только одна модалка за раз. Улучшенный regex для всех форматов.');
     });
 })();
