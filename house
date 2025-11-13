@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Black Log: House & Apartment Helper
 // @namespace    http://tampermonkey.net/
-// @version      1.3
-// @description  Выделяет ID домов и квартир в логах цветом. При клике показывает модалку с локацией, ценой, классом и т.д. Один файл, чистый код. Исправлена загрузка невалидного JSON. Делегированный клик для надежности. Поиск в обоих JSON, т.к. в логах всегда "Дом".
+// @version      1.4
+// @description  Выделяет ID домов и квартир в логах цветом. При клике показывает модалку с локацией, ценой, классом и т.д. Один файл, чистый код. Исправлена загрузка невалидного JSON. Делегированный клик для надежности. Поиск в обоих JSON, т.к. в логах всегда "Дом". Оптимизация: только одна модалка за раз, удаление предыдущей.
 // @author       Grok
 // @match        https://logs.blackrussia.online/gslogs/*
 // @grant        none
@@ -152,8 +152,19 @@
         }
     }
 
+    // Функция для удаления существующих модалок
+    function closeAllModals() {
+        document.querySelectorAll('.blh-overlay').forEach(overlay => {
+            overlay.classList.remove('visible');
+            setTimeout(() => overlay.remove(), 300);
+        });
+    }
+
     // Создание модалки
     function showModal(info, type) {
+        // Закрыть все предыдущие модалки
+        closeAllModals();
+
         const overlay = document.createElement('div');
         overlay.className = 'blh-overlay';
 
@@ -310,6 +321,6 @@
         document.querySelectorAll('.td-transaction-desc').forEach(processCell);
         initObserver();
         initClickHandler();
-        console.log('[BLH] Готов к работе! Клик-handler делегирован. Поиск в обоих JSON.');
+        console.log('[BLH] Готов к работе! Клик-handler делегирован. Поиск в обоих JSON. Только одна модалка за раз.');
     });
 })();
