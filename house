@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Black Log: House & Apartment Helper
 // @namespace    http://tampermonkey.net/
-// @version      1.1
-// @description  Выделяет ID домов и квартир в логах цветом. При клике показывает модалку с локацией, ценой, классом и т.д. Один файл, чистый код. Исправлена загрузка невалидного JSON.
+// @version      1.2
+// @description  Выделяет ID домов и квартир в логах цветом. При клике показывает модалку с локацией, ценой, классом и т.д. Один файл, чистый код. Исправлена загрузка невалидного JSON. Делегированный клик для надежности.
 // @author       Grok
 // @match        https://logs.blackrussia.online/gslogs/*
 // @grant        none
@@ -140,15 +140,13 @@
             }
             const houseText = await houseRes.text();
             const aptText = await aptRes.text();
-            // Парсинг как JS выражение
+            // Парсинг как JS выражение с добавлением кавычек к ключам
             houses = new Function('return ' + houseText.replace(/(\w+):/g, '"$1":'))();
             apartments = new Function('return ' + aptText.replace(/(\w+):/g, '"$1":'))();
             dataLoaded = true;
             console.log(`[BLH] Загружено: ${houses.length} домов, ${apartments.length} квартир`);
         } catch (e) {
             console.error('[BLH] Ошибка загрузки:', e);
-            // Альтернативные URL, если нужно
-            // Или сообщить пользователю проверить URL
         }
     }
 
@@ -248,39 +246,35 @@
         const houseRegex = /Дом \(sql: (\d+)\)/gi;
         const aptRegex = /Квартира \(sql: (\d+)\)/gi;
 
-        let newHtml = html;
-        let changed = false;
+        let newHtml = html.replace(houseRegex, (match, id) => 
+            match.replace(`(sql: ${id})`, `<span class="blh-id" data-type="house" data-id="${id}">(sql: ${id})</span>`)
+        ).replace(aptRegex, (match, id) => 
+            match.replace(`(sql: ${id})`, `<span class="blh-id" data-type="apt" data-id="${id}">(sql: ${id})</span>`)
+        );
 
-        // Дома
-        newHtml = newHtml.replace(houseRegex, (match, id) => {
-            changed = true;
-            return match.replace(`(sql: ${id})`, `<span class="blh-id" data-type="house" data-id="${id}">(sql: ${id})</span>`);
-        });
-
-        // Квартиры
-        newHtml = newHtml.replace(aptRegex, (match, id) => {
-            changed = true;
-            return match.replace(`(sql: ${id})`, `<span class="blh-id" data-type="apt" data-id="${id}">(sql: ${id})</span>`);
-        });
-
-        if (changed) {
+        if (newHtml !== html) {
             cell.innerHTML = newHtml;
-
-            // Обработчики кликов
-            cell.querySelectorAll('.blh-id').forEach(span => {
-                span.onclick = e => {
-                    e.stopPropagation();
-                    const type = span.dataset.type === 'house' ? 'house' : 'apt';
-                    const id = parseInt(span.dataset.id);
-                    const data = type === 'house' ? houses.find(h => h.id == id) : apartments.find(a => a.id == id);
-                    if (data) {
-                        showModal(data, type === 'house' ? 'house' : 'apartment');
-                    } else {
-                        alert(`Данные для ${type === 'house' ? 'дома' : 'квартиры'} #${id} не найдены.`);
-                    }
-                };
-            });
         }
+    }
+
+    // Делегированный обработчик кликов
+    function initClickHandler() {
+        document.body.addEventListener('click', e => {
+            if (e.target.matches('.blh-id')) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('[BLH] Клик на ID:', e.target.dataset.id); // Для отладки
+                const type = e.target.dataset.type === 'house' ? 'house' : 'apt';
+                const id = parseInt(e.target.dataset.id, 10);
+                const dataArray = type === 'house' ? houses : apartments;
+                const info = dataArray.find(item => item.id === id);
+                if (info) {
+                    showModal(info, type);
+                } else {
+                    alert(`Данные для ${type === 'house' ? 'дома' : 'квартиры'} #${id} не найдены. Возможно, ID отсутствует в загруженных данных.`);
+                }
+            }
+        }, true); // capture: true для перехвата раньше других
     }
 
     // MutationObserver
@@ -289,10 +283,10 @@
             mutations.forEach(mutation => {
                 mutation.addedNodes.forEach(node => {
                     if (node.nodeType === 1) {
-                        if (node.matches && node.matches('.td-transaction-desc')) {
+                        if (node.matches('.td-transaction-desc')) {
                             processCell(node);
                         }
-                        node.querySelectorAll?.('.td-transaction-desc').forEach(processCell);
+                        node.querySelectorAll('.td-transaction-desc').forEach(processCell);
                     }
                 });
             });
@@ -305,6 +299,7 @@
         // Обработать существующие
         document.querySelectorAll('.td-transaction-desc').forEach(processCell);
         initObserver();
-        console.log('[BLH] Готов к работе!');
+        initClickHandler();
+        console.log('[BLH] Готов к работе! Клик-handler делегирован.');
     });
 })();
