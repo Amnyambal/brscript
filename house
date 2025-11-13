@@ -1,380 +1,305 @@
 // ==UserScript==
-// @name         Black Log: Property Helper
+// @name         Black Log: House & Apartment Helper
 // @namespace    http://tampermonkey.net/
-// @version      1.0
-// @description  Показывает информацию о домах и квартирах по их ID в логах
-// @author       You
+// @version      1.2
+// @description  Выделяет ID домов и квартир в логах цветом. При клике показывает модалку с локацией, ценой, классом и т.д. Один файл, чистый код. Исправлена загрузка невалидного JSON. Делегированный клик для надежности.
+// @author       Grok
 // @match        https://logs.blackrussia.online/gslogs/*
-// @grant        GM_xmlhttpRequest
-// @connect      raw.githubusercontent.com
+// @grant        none
 // @run-at       document-end
 // ==/UserScript==
 
 (function() {
     'use strict';
 
-    // --- 1. Добавляем стили ---
-    const style = document.createElement('style');
-    style.textContent = `
-        .property-info-btn {
-            background: linear-gradient(145deg, #2b8cff, #1f6cd9);
-            color: white;
-            border: none;
-            padding: 3px 8px;
-            margin-left: 5px;
-            font-size: 11px;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            vertical-align: middle;
-        }
-        .property-info-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 2px 8px rgba(43, 140, 255, 0.4);
-        }
-        .property-highlight {
-            background-color: rgba(43, 140, 255, 0.15);
+    // Стили для кнопок/ID и модалки
+    const styles = `
+        .blh-id {
+            color: #2b8cff !important;
+            background: rgba(43, 140, 255, 0.1);
+            padding: 1px 4px;
             border-radius: 4px;
-            padding: 0 4px;
+            cursor: pointer !important;
             font-weight: 500;
+            transition: all 0.2s ease;
         }
-        .property-modal-overlay {
+        .blh-id:hover {
+            background: rgba(43, 140, 255, 0.2) !important;
+            transform: scale(1.05);
+        }
+        .blh-overlay {
             position: fixed;
             inset: 0;
             background: rgba(0, 0, 0, 0.7);
-            z-index: 9999;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            z-index: 10000;
+            backdrop-filter: blur(8px);
             opacity: 0;
-            transition: opacity 0.3s;
-            pointer-events: none;
+            transition: opacity 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
         }
-        .property-modal-overlay.visible {
+        .blh-overlay.visible {
             opacity: 1;
-            pointer-events: auto;
         }
-        .property-modal {
-            background: rgba(30, 39, 46, 0.95);
-            color: white;
+        .blh-modal {
+            background: linear-gradient(145deg, #1a1a1a, #2a2a2a);
+            color: #fff;
             border-radius: 12px;
-            width: 90%;
             max-width: 500px;
-            max-height: 90vh;
-            overflow: auto;
-            box-shadow: 0 10px 35px rgba(0, 0, 0, 0.5);
-            transform: scale(0.95);
-            transition: transform 0.3s;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
+            max-height: 80vh;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(43, 140, 255, 0.3);
         }
-        .property-modal-overlay.visible .property-modal {
+        .blh-overlay.visible .blh-modal {
             transform: scale(1);
         }
-        .property-modal-header {
-            padding: 15px 20px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        .blh-header {
+            padding: 20px 24px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: move;
+            user-select: none;
         }
-        .property-modal-title {
-            font-size: 18px;
+        .blh-title {
+            margin: 0;
+            font-size: 20px;
             font-weight: 600;
             color: #2b8cff;
-            margin: 0;
         }
-        .property-modal-close {
-            background: transparent;
+        .blh-close {
+            background: none;
             border: none;
             color: #ccc;
             font-size: 24px;
             cursor: pointer;
-            width: 30px;
-            height: 30px;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 50%;
-            transition: background 0.2s;
+            transition: all 0.2s ease;
         }
-        .property-modal-close:hover {
+        .blh-close:hover {
             background: rgba(255, 255, 255, 0.1);
-            color: white;
+            color: #fff;
         }
-        .property-modal-content {
-            padding: 20px;
-            font-family: 'Segoe UI', sans-serif;
+        .blh-content {
+            padding: 24px;
+            overflow-y: auto;
+            max-height: calc(80vh - 120px);
         }
-        .property-detail {
-            margin-bottom: 12px;
+        .blh-info-row {
             display: flex;
+            margin-bottom: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
-        .property-detail-label {
-            min-width: 120px;
-            font-weight: 500;
+        .blh-label {
+            font-weight: 600;
             color: #87ceeb;
+            min-width: 120px;
+            flex-shrink: 0;
         }
-        .property-detail-value {
+        .blh-value {
+            color: #fff;
             flex: 1;
         }
-        .property-type-house {
-            color: #ff9e6d;
-        }
-        .property-type-apartment {
-            color: #a076f9;
-        }
-        .property-price {
-            color: #ffd700;
-            font-weight: 600;
+        .blh-processed {
+            pointer-events: none;
         }
     `;
-    document.head.appendChild(style);
+    const styleEl = document.createElement('style');
+    styleEl.textContent = styles;
+    document.head.appendChild(styleEl);
 
-    // --- 2. Хранилище данных ---
+    // Данные
     let houses = [];
     let apartments = [];
-    let isDataLoaded = false;
-    const processedElements = new WeakSet();
+    let dataLoaded = false;
 
-    // --- 3. Функции загрузки данных ---
-    function fetchData(url) {
-        return new Promise((resolve, reject) => {
-            GM_xmlhttpRequest({
-                method: 'GET',
-                url: url,
-                onload: function(response) {
-                    try {
-                        const data = JSON.parse(response.responseText);
-                        resolve(data);
-                    } catch (error) {
-                        reject(error);
-                    }
-                },
-                onerror: function(error) {
-                    reject(error);
-                }
-            });
-        });
-    }
-
-    async function loadPropertyData() {
+    // Загрузка данных (парсинг как JS, не JSON)
+    async function loadData() {
         try {
-            console.log('[Property Helper] Загрузка данных о недвижимости...');
-            
-            const [housesData, apartmentsData] = await Promise.all([
-                fetchData('https://raw.githubusercontent.com/Amnyambal/brscript/refs/heads/main/house.json'),
-                fetchData('https://raw.githubusercontent.com/Amnyambal/brscript/refs/heads/main/apartments.json')
+            const [houseRes, aptRes] = await Promise.all([
+                fetch('https://raw.githubusercontent.com/Amnyambal/brscript/main/house.json'),
+                fetch('https://raw.githubusercontent.com/Amnyambal/brscript/main/apartments.json')
             ]);
-            
-            houses = housesData;
-            apartments = apartmentsData;
-            isDataLoaded = true;
-            
-            console.log(`[Property Helper] Загружено: ${houses.length} домов, ${apartments.length} квартир`);
-            processPage();
-        } catch (error) {
-            console.error('[Property Helper] Ошибка загрузки данных: ', error);
-            alert('Не удалось загрузить данные о недвижимости. Проверьте подключение к интернету.');
+            if (!houseRes.ok || !aptRes.ok) {
+                throw new Error('Ошибка загрузки файлов');
+            }
+            const houseText = await houseRes.text();
+            const aptText = await aptRes.text();
+            // Парсинг как JS выражение с добавлением кавычек к ключам
+            houses = new Function('return ' + houseText.replace(/(\w+):/g, '"$1":'))();
+            apartments = new Function('return ' + aptText.replace(/(\w+):/g, '"$1":'))();
+            dataLoaded = true;
+            console.log(`[BLH] Загружено: ${houses.length} домов, ${apartments.length} квартир`);
+        } catch (e) {
+            console.error('[BLH] Ошибка загрузки:', e);
         }
     }
 
-    // --- 4. Функции UI ---
-    function createModal(property, type) {
-        // Создаем оверлей
+    // Создание модалки
+    function showModal(info, type) {
         const overlay = document.createElement('div');
-        overlay.className = 'property-modal-overlay';
-        
-        // Создаем модальное окно
+        overlay.className = 'blh-overlay';
+
         const modal = document.createElement('div');
-        modal.className = 'property-modal';
-        
-        // Создаем заголовок
+        modal.className = 'blh-modal';
+
+        const isHouse = type === 'house';
+        const data = info;
+        const title = isHouse ? `Дом #${data.id}` : `Квартира #${data.id}`;
+
         const header = document.createElement('div');
-        header.className = 'property-modal-header';
-        
-        const title = document.createElement('h3');
-        title.className = 'property-modal-title';
-        title.textContent = type === 'house' ? `🏠 Дом #${property.id}` : `🏢 Квартира #${property.id}`;
-        
-        const closeBtn = document.createElement('button');
-        closeBtn.className = 'property-modal-close';
-        closeBtn.innerHTML = '&times;';
-        closeBtn.setAttribute('aria-label', 'Закрыть окно');
-        
-        // Создаем контент
+        header.className = 'blh-header';
+        header.innerHTML = `
+            <h3 class="blh-title">${title}</h3>
+            <button class="blh-close">&times;</button>
+        `;
+
         const content = document.createElement('div');
-        content.className = 'property-modal-content';
-        
-        // Добавляем детали недвижимости
-        const details = [
-            { label: 'Тип недвижимости', value: type === 'house' ? 'Частный дом' : 'Квартира', class: type === 'house' ? 'property-type-house' : 'property-type-apartment' },
-            { label: 'Локация', value: property.location || 'Не указана' },
-            { label: 'Класс', value: property.type || property.class || 'Не указан' },
-            { label: 'Цена', value: `<span class="property-price">${property.price || 'Не указана'}</span>` },
-        ];
-        
-        if (type === 'house') {
-            details.push(
-                { label: 'Гараж', value: property.garage ? `Есть (ID: ${property.garage})` : 'Нет' }
-            );
-        } else {
-            details.push(
-                { label: 'Вход', value: property.entrance || 'Не указан' }
-            );
-        }
-        
-        details.forEach(detail => {
-            const detailEl = document.createElement('div');
-            detailEl.className = 'property-detail';
-            
-            const labelEl = document.createElement('div');
-            labelEl.className = 'property-detail-label';
-            labelEl.textContent = detail.label + ':';
-            
-            const valueEl = document.createElement('div');
-            valueEl.className = 'property-detail-value';
-            if (typeof detail.value === 'string' && detail.value.includes('<')) {
-                valueEl.innerHTML = detail.value;
-            } else {
-                valueEl.textContent = detail.value;
-            }
-            
-            if (detail.class) {
-                valueEl.className = detail.class;
-            }
-            
-            detailEl.appendChild(labelEl);
-            detailEl.appendChild(valueEl);
-            content.appendChild(detailEl);
-        });
-        
-        // Собираем модальное окно
-        header.appendChild(title);
-        header.appendChild(closeBtn);
+        content.className = 'blh-content';
+        content.innerHTML = `
+            <div class="blh-info-row">
+                <div class="blh-label">Локация:</div>
+                <div class="blh-value">${data.location || '—'}</div>
+            </div>
+            <div class="blh-info-row">
+                <div class="blh-label">Класс:</div>
+                <div class="blh-value">${data.type || data.class || '—'}</div>
+            </div>
+            <div class="blh-info-row">
+                <div class="blh-label">Цена:</div>
+                <div class="blh-value">${data.price || '—'}</div>
+            </div>
+            ${isHouse ? `
+                <div class="blh-info-row">
+                    <div class="blh-label">Гараж:</div>
+                    <div class="blh-value">${data.garage ? `${data.garage} мест` : 'Нет'}</div>
+                </div>
+            ` : `
+                <div class="blh-info-row">
+                    <div class="blh-label">Подъезд:</div>
+                    <div class="blh-value">${data.entrance || '—'}</div>
+                </div>
+            `}
+        `;
+
         modal.appendChild(header);
         modal.appendChild(content);
         overlay.appendChild(modal);
         document.body.appendChild(overlay);
-        
-        // Показываем модальное окно с анимацией
-        requestAnimationFrame(() => {
-            overlay.classList.add('visible');
-        });
-        
-        // Функция закрытия модального окна
-        function closeModal() {
+
+        // Анимация
+        requestAnimationFrame(() => overlay.classList.add('visible'));
+
+        // Закрытие
+        const close = () => {
             overlay.classList.remove('visible');
-            overlay.addEventListener('transitionend', () => {
-                if (overlay.parentNode) {
-                    overlay.parentNode.removeChild(overlay);
-                }
-            }, { once: true });
-        }
-        
-        // Закрываем по клику на кнопку или оверлей
-        closeBtn.addEventListener('click', closeModal);
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) closeModal();
-        });
-        
-        // Закрываем по клавише Escape
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') closeModal();
-        }, { once: true });
+            setTimeout(() => overlay.remove(), 300);
+        };
+        header.querySelector('.blh-close').onclick = close;
+        overlay.onclick = e => {
+            if (e.target === overlay) close();
+        };
+
+        // Drag
+        let dragging = false, startX, startY;
+        header.onmousedown = e => {
+            if (e.target.closest('.blh-close')) return;
+            dragging = true;
+            const rect = modal.getBoundingClientRect();
+            startX = e.clientX - rect.left;
+            startY = e.clientY - rect.top;
+            modal.style.transition = 'none';
+            modal.style.position = 'fixed';
+        };
+        document.onmousemove = e => {
+            if (!dragging) return;
+            modal.style.left = `${e.clientX - startX}px`;
+            modal.style.top = `${e.clientY - startY}px`;
+        };
+        document.onmouseup = () => {
+            dragging = false;
+            modal.style.transition = 'transform 0.3s ease';
+        };
     }
 
-    // --- 5. Основная логика обработки страницы ---
-    function processPage() {
-        if (!isDataLoaded) return;
-        
-        // Регулярное выражение для поиска упоминаний домов и квартир
-        const propertyRegex = /(дом|квартира)\s*\(sql:\s*(\d+)\)/gi;
-        
-        // Обрабатываем все ячейки таблицы, которые могут содержать упоминания недвижимости
-        document.querySelectorAll('#log-table tbody tr.second-row td.td-transaction-desc').forEach(cell => {
-            if (processedElements.has(cell)) return;
-            
-            let content = cell.innerHTML;
-            let match;
-            const matches = [];
-            
-            // Находим все упоминания недвижимости в ячейке
-            while ((match = propertyRegex.exec(content)) !== null) {
-                const fullMatch = match[0];
-                const type = match[1].trim() === 'дом' ? 'house' : 'apartment';
-                const sqlId = parseInt(match[2], 10);
-                
-                if (!isNaN(sqlId)) {
-                    matches.push({ fullMatch, type, sqlId });
+    // Обработка одной ячейки
+    function processCell(cell) {
+        if (cell.classList.contains('blh-processed') || !dataLoaded) return;
+        cell.classList.add('blh-processed');
+
+        const html = cell.innerHTML;
+        const houseRegex = /Дом \(sql: (\d+)\)/gi;
+        const aptRegex = /Квартира \(sql: (\d+)\)/gi;
+
+        let newHtml = html.replace(houseRegex, (match, id) => 
+            match.replace(`(sql: ${id})`, `<span class="blh-id" data-type="house" data-id="${id}">(sql: ${id})</span>`)
+        ).replace(aptRegex, (match, id) => 
+            match.replace(`(sql: ${id})`, `<span class="blh-id" data-type="apt" data-id="${id}">(sql: ${id})</span>`)
+        );
+
+        if (newHtml !== html) {
+            cell.innerHTML = newHtml;
+        }
+    }
+
+    // Делегированный обработчик кликов
+    function initClickHandler() {
+        document.body.addEventListener('click', e => {
+            if (e.target.matches('.blh-id')) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('[BLH] Клик на ID:', e.target.dataset.id); // Для отладки
+                const type = e.target.dataset.type === 'house' ? 'house' : 'apt';
+                const id = parseInt(e.target.dataset.id, 10);
+                const dataArray = type === 'house' ? houses : apartments;
+                const info = dataArray.find(item => item.id === id);
+                if (info) {
+                    showModal(info, type);
+                } else {
+                    alert(`Данные для ${type === 'house' ? 'дома' : 'квартиры'} #${id} не найдены. Возможно, ID отсутствует в загруженных данных.`);
                 }
             }
-            
-            // Заменяем упоминания на выделенный текст и добавляем кнопки
-            if (matches.length > 0) {
-                let newContent = content;
-                const usedIds = new Set();
-                
-                matches.forEach(({ fullMatch, type, sqlId }) => {
-                    if (usedIds.has(sqlId)) return;
-                    usedIds.add(sqlId);
-                    
-                    // Пропускаем, если кнопка уже существует
-                    if (cell.querySelector(`.property-info-btn[data-id="${sqlId}"]`)) return;
-                    
-                    // Создаем выделение для упоминания
-                    const highlightWrapper = `<span class="property-highlight">${fullMatch}</span>`;
-                    
-                    // Заменяем только первое вхождение
-                    newContent = newContent.replace(fullMatch, highlightWrapper);
-                });
-                
-                cell.innerHTML = newContent;
-                
-                // Добавляем кнопки для каждой уникальной недвижимости
-                usedIds.forEach(sqlId => {
-                    const match = matches.find(m => m.sqlId === sqlId);
-                    if (!match) return;
-                    
-                    const { type } = match;
-                    const propertyArray = type === 'house' ? houses : apartments;
-                    const property = propertyArray.find(p => p.id === sqlId);
-                    
-                    if (property) {
-                        const btn = document.createElement('button');
-                        btn.className = 'property-info-btn';
-                        btn.dataset.id = sqlId;
-                        btn.dataset.type = type;
-                        btn.innerHTML = type === 'house' ? '🏠 Info' : '🏢 Info';
-                        
-                        btn.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            createModal(property, type);
-                        });
-                        
-                        cell.appendChild(btn);
+        }, true); // capture: true для перехвата раньше других
+    }
+
+    // MutationObserver
+    function initObserver() {
+        const observer = new MutationObserver(mutations => {
+            mutations.forEach(mutation => {
+                mutation.addedNodes.forEach(node => {
+                    if (node.nodeType === 1) {
+                        if (node.matches('.td-transaction-desc')) {
+                            processCell(node);
+                        }
+                        node.querySelectorAll('.td-transaction-desc').forEach(processCell);
                     }
                 });
-                
-                processedElements.add(cell);
-            }
+            });
         });
+        observer.observe(document.body, { childList: true, subtree: true });
     }
 
-    // --- 6. Инициализация ---
-    console.log('[Property Helper] Скрипт загружен. Загрузка данных о недвижимости...');
-    loadPropertyData();
-    
-    // Настраиваем наблюдатель за изменениями DOM для динамического контента
-    const observer = new MutationObserver(() => {
-        processPage();
+    // Инициализация
+    loadData().then(() => {
+        // Обработать существующие
+        document.querySelectorAll('.td-transaction-desc').forEach(processCell);
+        initObserver();
+        initClickHandler();
+        console.log('[BLH] Готов к работе! Клик-handler делегирован.');
     });
-    
-    observer.observe(document.body, {
-        childList: true,
-        subtree: true
-    });
-    
-    // Первоначальная обработка страницы
-    setTimeout(processPage, 1000);
 })();
