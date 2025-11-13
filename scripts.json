@@ -23,7 +23,7 @@
     },
     {
       "id": "home",
-      "name": "Дома тттт",
+      "name": "Дома т",
       "matches": ["https://logs.blackrussia.online/gslogs/*"],
       "url": "https://raw.githubusercontent.com/Amnyambal/brscript/refs/heads/main/house",
       "enabledDefault": true
