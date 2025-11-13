@@ -1,424 +1,50 @@
-// ==UserScript==
-// @name         Black Log: House Helper
-// @namespace    http://tampermonkey.net/
-// @version      2.3
-// @description  Показывает информацию о домах и квартирах по ID на странице логов
-// @author       You
-// @match        https://logs.blackrussia.online/gslogs/*
-// @grant        GM_xmlhttpRequest
-// @connect      raw.githubusercontent.com
-// @run-at       document-end
-// ==/UserScript==
-
-(function() {
-    'use strict';
-
-    // Стили для кнопок и модального окна
-    const style = document.createElement('style');
-    style.textContent = `
-        .house-info-btn {
-            background: linear-gradient(145deg, #0d6efd, #0a58ca);
-            color: white;
-            border: none;
-            padding: 4px 8px;
-            margin: 0 4px;
-            font-size: 11px;
-            border-radius: 6px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        .house-info-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 3px 8px rgba(13, 110, 253, 0.4);
-        }
-        .house-modal {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: #1e1e1e;
-            color: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            z-index: 10000;
-            max-width: 500px;
-            width: 90%;
-            max-height: 80vh;
-            overflow-y: auto;
-            font-family: 'Segoe UI', sans-serif;
-            border: 1px solid #333;
-        }
-        .house-modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.7);
-            z-index: 9999;
-            backdrop-filter: blur(4px);
-        }
-        .house-modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #333;
-        }
-        .house-modal-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #4dabf7;
-            margin: 0;
-        }
-        .house-modal-close {
-            background: none;
-            border: none;
-            color: #ccc;
-            font-size: 24px;
-            cursor: pointer;
-            padding: 0;
-            width: 30px;
-            height: 30px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .house-modal-close:hover {
-            color: white;
-        }
-        .house-info-item {
-            margin: 8px 0;
-            display: flex;
-            align-items: flex-start;
-        }
-        .house-info-label {
-            font-weight: 600;
-            color: #87ceeb;
-            min-width: 120px;
-            margin-right: 10px;
-        }
-        .house-info-value {
-            flex: 1;
-            word-break: break-word;
-        }
-        .house-highlight {
-            background: linear-gradient(145deg, #ffd700, #ffa500);
-            color: #000;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: bold;
-            margin: 0 2px;
-        }
-        .house-found {
-            border: 2px solid #00ff00 !important;
-        }
-    `;
-    document.head.appendChild(style);
-
-    let houses = [];
-    let apartments = [];
-    let isDataLoaded = false;
-
-    // Функция для извлечения JSON из JavaScript-файла
-    function extractJsonFromJs(jsContent) {
-        try {
-            // Пытаемся найти начало массива
-            const arrayStart = jsContent.indexOf('[');
-            const arrayEnd = jsContent.lastIndexOf(']') + 1;
-            
-            if (arrayStart !== -1 && arrayEnd !== -1) {
-                const arrayString = jsContent.substring(arrayStart, arrayEnd);
-                return JSON.parse(arrayString);
-            }
-            
-            throw new Error('Не удалось извлечь массив из JS файла');
-        } catch (error) {
-            console.error('Ошибка извлечения JSON:', error);
-            return [];
-        }
+{
+  "scripts": [
+    {
+      "id": "br-trade-viewer",
+      "name": "Содержимое трейда",
+      "matches": ["https://logs.blackrussia.online/gslogs/*"],
+      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/br-trade-viewer.js",
+      "enabledDefault": true
+    },
+    {
+      "id": "set-tstart",
+      "name": "Последняя блокировка/разблокировка",
+      "matches": ["https://logs.blackrussia.online/gslogs/*"],
+      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/baninfo.js",
+      "enabledDefault": true
+    },
+    {
+      "id": "poisk",
+      "name": "Поиск по серверам (Для ЗГТС)",
+      "matches": ["https://logs.blackrussia.online/gslogs/*"],
+      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/refs/heads/main/poisk",
+      "enabledDefault": true
+    },
+    {
+      "id": "home",
+      "name": "Дома",
+      "matches": ["https://logs.blackrussia.online/gslogs/*"],
+      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/refs/heads/main/house",
+      "enabledDefault": true
+    },
+    {
+      "id": "forumbtns",
+      "name": "Форумный скрипт для техов",
+      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/forum-buttons.js",
+      "matches": [
+        "https://forum.blackrussia.online/threads/*"
+      ],
+      "enabledDefault": true
+    },
+        {
+      "id": "forumkts",
+      "name": "Форумный скрипт для КТС/ЗКТС" ,
+      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/forumkts",
+      "matches": [
+        "https://forum.blackrussia.online/*"
+      ],
+      "enabledDefault": true
     }
-
-    // Загрузка данных
-    function loadData() {
-        const housesUrl = 'https://raw.githubusercontent.com/Amnyambal/brscript/main/house.json';
-        const apartmentsUrl = 'https://raw.githubusercontent.com/Amnyambal/brscript/main/apartments.json';
-
-        Promise.all([
-            new Promise((resolve, reject) => {
-                GM_xmlhttpRequest({
-                    method: 'GET',
-                    url: housesUrl,
-                    onload: function(response) {
-                        try {
-                            houses = extractJsonFromJs(response.responseText);
-                            console.log(`[House Helper] Загружено домов: ${houses.length}`);
-                            resolve();
-                        } catch (e) {
-                            reject(e);
-                        }
-                    },
-                    onerror: reject
-                });
-            }),
-            new Promise((resolve, reject) => {
-                GM_xmlhttpRequest({
-                    method: 'GET',
-                    url: apartmentsUrl,
-                    onload: function(response) {
-                        try {
-                            apartments = extractJsonFromJs(response.responseText);
-                            console.log(`[House Helper] Загружено квартир: ${apartments.length}`);
-                            resolve();
-                        } catch (e) {
-                            reject(e);
-                        }
-                    },
-                    onerror: reject
-                });
-            })
-        ]).then(() => {
-            isDataLoaded = true;
-            console.log(`[House Helper] Данные загружены: ${houses.length} домов, ${apartments.length} квартир`);
-            
-            // Начинаем обработку с интервалами
-            startProcessing();
-        }).catch(error => {
-            console.error('[House Helper] Ошибка загрузки данных:', error);
-        });
-    }
-
-    // Создание модального окна
-    function createModal(info, type) {
-        // Удаляем существующие модальные окна
-        document.querySelectorAll('.house-modal-overlay').forEach(el => el.remove());
-        
-        const overlay = document.createElement('div');
-        overlay.className = 'house-modal-overlay';
-        
-        const modal = document.createElement('div');
-        modal.className = 'house-modal';
-
-        const title = type === 'house' ? `Дом #${info.id}` : `Квартира #${info.id}`;
-
-        modal.innerHTML = `
-            <div class="house-modal-header">
-                <h3 class="house-modal-title">${title}</h3>
-                <button class="house-modal-close">&times;</button>
-            </div>
-            <div class="house-modal-content">
-                ${type === 'house' ? `
-                    <div class="house-info-item">
-                        <span class="house-info-label">Местоположение:</span>
-                        <span class="house-info-value">${info.location || '—'}</span>
-                    </div>
-                    <div class="house-info-item">
-                        <span class="house-info-label">Класс:</span>
-                        <span class="house-info-value">${info.type || '—'}</span>
-                    </div>
-                    <div class="house-info-item">
-                        <span class="house-info-label">Цена:</span>
-                        <span class="house-info-value">${info.price || '—'}</span>
-                    </div>
-                    <div class="house-info-item">
-                        <span class="house-info-label">Гараж:</span>
-                        <span class="house-info-value">${info.garage || '—'}</span>
-                    </div>
-                ` : `
-                    <div class="house-info-item">
-                        <span class="house-info-label">Местоположение:</span>
-                        <span class="house-info-value">${info.location || '—'}</span>
-                    </div>
-                    <div class="house-info-item">
-                        <span class="house-info-label">Класс:</span>
-                        <span class="house-info-value">${info.type || '—'}</span>
-                    </div>
-                    <div class="house-info-item">
-                        <span class="house-info-label">Подъезд:</span>
-                        <span class="house-info-value">${info.entrance || '—'}</span>
-                    </div>
-                    <div class="house-info-item">
-                        <span class="house-info-label">Цена:</span>
-                        <span class="house-info-value">${info.price || '—'}</span>
-                    </div>
-                `}
-            </div>
-        `;
-
-        overlay.appendChild(modal);
-        document.body.appendChild(overlay);
-
-        // Закрытие модального окна
-        const closeBtn = modal.querySelector('.house-modal-close');
-        const closeModal = () => overlay.remove();
-        
-        closeBtn.addEventListener('click', closeModal);
-        overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) closeModal();
-        });
-
-        // Закрытие по ESC
-        const closeHandler = (e) => {
-            if (e.key === 'Escape') closeModal();
-        };
-        document.addEventListener('keydown', closeHandler);
-    }
-
-    // Поиск и обработка элементов с ID домов/квартир
-    function findAndProcessProperties() {
-        if (!isDataLoaded) {
-            console.log('[House Helper] Данные еще не загружены');
-            return 0;
-        }
-
-        let processedCount = 0;
-        
-        // Ищем все элементы, которые могут содержать информацию о свойствах
-        const selectors = [
-            'td.td-transaction-desc',
-            'td',
-            'div',
-            'span',
-            'p',
-            '.second-row'
-        ];
-
-        selectors.forEach(selector => {
-            const elements = document.querySelectorAll(selector);
-            elements.forEach(element => {
-                if (element.getAttribute('data-house-processed')) {
-                    return; // Уже обработан
-                }
-
-                const text = element.textContent;
-                if (!text) return;
-
-                // Расширенные регулярные выражения для поиска
-                const houseRegex = /дом\s*\(?\s*sql:\s*(\d+)\s*\)?/gi;
-                const apartmentRegex = /квартира\s*\(?\s*sql:\s*(\d+)\s*\)?/gi;
-
-                let match;
-                const foundProperties = [];
-
-                // Поиск домов
-                while ((match = houseRegex.exec(text)) !== null) {
-                    foundProperties.push({
-                        type: 'house',
-                        id: parseInt(match[1]),
-                        text: match[0],
-                        index: match.index
-                    });
-                }
-
-                // Поиск квартир
-                while ((match = apartmentRegex.exec(text)) !== null) {
-                    foundProperties.push({
-                        type: 'apartment', 
-                        id: parseInt(match[1]),
-                        text: match[0],
-                        index: match.index
-                    });
-                }
-
-                if (foundProperties.length > 0) {
-                    processElementWithProperties(element, foundProperties);
-                    processedCount += foundProperties.length;
-                    element.setAttribute('data-house-processed', 'true');
-                    
-                    // Добавляем визуальный индикатор для отладки
-                    element.classList.add('house-found');
-                }
-            });
-        });
-
-        console.log(`[House Helper] Найдено и обработано свойств: ${processedCount}`);
-        return processedCount;
-    }
-
-    // Обработка элемента с найденными свойствами
-    function processElementWithProperties(element, properties) {
-        // Сортируем свойства по индексу (с конца к началу)
-        properties.sort((a, b) => b.index - a.index);
-        
-        let html = element.innerHTML;
-        
-        properties.forEach(property => {
-            const originalText = property.text;
-            const highlightedText = `<span class="house-highlight">${originalText}</span>`;
-            const button = `<button class="house-info-btn" data-type="${property.type}" data-id="${property.id}">ℹ️</button>`;
-            const replacement = `${highlightedText}${button}`;
-            
-            html = html.replace(originalText, replacement);
-        });
-        
-        element.innerHTML = html;
-        
-        // Добавляем обработчики событий для кнопок
-        element.querySelectorAll('.house-info-btn').forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.stopPropagation();
-                const type = this.getAttribute('data-type');
-                const id = parseInt(this.getAttribute('data-id'));
-                
-                showPropertyInfo(type, id);
-            });
-        });
-    }
-
-    // Показать информацию о свойстве
-    function showPropertyInfo(type, id) {
-        const dataArray = type === 'house' ? houses : apartments;
-        const info = dataArray.find(item => item.id === id);
-        
-        if (info) {
-            createModal(info, type);
-        } else {
-            alert(`${type === 'house' ? 'Дом' : 'Квартира'} с ID ${id} не найден в базе данных`);
-        }
-    }
-
-    // Запуск обработки с интервалами
-    function startProcessing() {
-        console.log('[House Helper] Начинаем поиск свойств на странице...');
-        
-        let attempts = 0;
-        const maxAttempts = 10;
-        
-        const processInterval = setInterval(() => {
-            attempts++;
-            const found = findAndProcessProperties();
-            
-            if (found > 0 || attempts >= maxAttempts) {
-                clearInterval(processInterval);
-                console.log(`[House Helper] Поиск завершен. Найдено: ${found} свойств за ${attempts} попыток`);
-            }
-        }, 1000);
-    }
-
-    // Инициализация
-    function init() {
-        console.log('[House Helper] Инициализация...');
-        loadData();
-        
-        // Также обрабатываем страницу при изменениях
-        const observer = new MutationObserver(() => {
-            if (isDataLoaded) {
-                findAndProcessProperties();
-            }
-        });
-        
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
-    }
-
-    // Запуск
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
-})();
+  ]
+}
