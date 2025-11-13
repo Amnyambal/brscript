@@ -1,304 +1,172 @@
 // ==UserScript==
-// @name         Black Log: House & Apartment Helper
+// @name         Black Log: House & Apartment Info
 // @namespace    http://tampermonkey.net/
-// @version      1.0
-// @description  Выделяет ID домов и квартир в логах цветом. При клике показывает модалку с локацией, ценой, классом и т.д. Один файл, чистый код.
+// @version      1.3
+// @description  Кликабельные ID домов и квартир в логах → показывает локацию, цену, класс и т.д.
 // @author       Grok
 // @match        https://logs.blackrussia.online/gslogs/*
-// @grant        none
+// @grant        GM_addStyle
 // @run-at       document-end
 // ==/UserScript==
 
-(function() {
+(async function () {
     'use strict';
 
-    // Стили для кнопок/ID и модалки
-    const styles = `
-        .blh-id {
-            color: #2b8cff !important;
-            background: rgba(43, 140, 255, 0.1);
-            padding: 1px 4px;
-            border-radius: 4px;
-            cursor: pointer !important;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }
-        .blh-id:hover {
-            background: rgba(43, 140, 255, 0.2) !important;
-            transform: scale(1.05);
-        }
-        .blh-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.7);
-            z-index: 10000;
-            backdrop-filter: blur(8px);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-        .blh-overlay.visible {
-            opacity: 1;
-        }
-        .blh-modal {
-            background: linear-gradient(145deg, #1a1a1a, #2a2a2a);
-            color: #fff;
-            border-radius: 12px;
-            max-width: 500px;
-            max-height: 80vh;
-            width: 100%;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-            transform: scale(0.9);
-            transition: transform 0.3s ease;
-            position: relative;
-            overflow: hidden;
-            border: 1px solid rgba(43, 140, 255, 0.3);
-        }
-        .blh-overlay.visible .blh-modal {
-            transform: scale(1);
-        }
-        .blh-header {
-            padding: 20px 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            cursor: move;
-            user-select: none;
-        }
-        .blh-title {
-            margin: 0;
-            font-size: 20px;
-            font-weight: 600;
-            color: #2b8cff;
-        }
-        .blh-close {
-            background: none;
-            border: none;
-            color: #ccc;
-            font-size: 24px;
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Стили (через GM_addStyle, чтобы не было конфликтов)
+    // ─────────────────────────────────────────────────────────────────────────────
+    GM_addStyle(`
+        .blh-link {
+            color: #4da6ff !important;
+            text-decoration: underline;
             cursor: pointer;
-            padding: 0;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s ease;
-        }
-        .blh-close:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
-        }
-        .blh-content {
-            padding: 24px;
-            overflow-y: auto;
-            max-height: calc(80vh - 120px);
-        }
-        .blh-info-row {
-            display: flex;
-            margin-bottom: 12px;
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
-        .blh-label {
             font-weight: 600;
-            color: #87ceeb;
-            min-width: 120px;
-            flex-shrink: 0;
         }
-        .blh-value {
-            color: #fff;
-            flex: 1;
-        }
-        .blh-processed {
-            pointer-events: none;
-        }
-    `;
-    const styleEl = document.createElement('style');
-    styleEl.textContent = styles;
-    document.head.appendChild(styleEl);
+        .blh-link:hover { color: #80bfff !important; }
 
-    // Данные
-    let houses = [];
-    let apartments = [];
-    let dataLoaded = false;
-
-    // Загрузка JSON
-    async function loadData() {
-        try {
-            const [houseRes, aptRes] = await Promise.all([
-                fetch('https://raw.githubusercontent.com/Amnyambal/brscript/refs/heads/main/house.json'),
-                fetch('https://raw.githubusercontent.com/Amnyambal/brscript/refs/heads/main/apartments.json')
-            ]);
-            houses = await houseRes.json();
-            apartments = await aptRes.json();
-            dataLoaded = true;
-            console.log(`[BLH] Загружено: ${houses.length} домов, ${apartments.length} квартир`);
-        } catch (e) {
-            console.error('[BLH] Ошибка загрузки:', e);
+        .blh-modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 99999; opacity: 0; visibility: hidden;
+            transition: opacity .25s, visibility .25s;
         }
-    }
+        .blh-modal-overlay.visible { opacity: 1; visibility: visible; }
 
-    // Создание модалки
-    function showModal(info, type) {
+        .blh-modal {
+            background: #1e1e1e; color: #fff; border-radius: 12px;
+            width: 90%; max-width: 420px; padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+            transform: scale(0.9); transition: transform .25s;
+        }
+        .blh-modal.visible { transform: scale(1); }
+
+        .blh-modal h3 { margin: 0 0 16px; color: #4da6ff; font-size: 1.4em; }
+        .blh-modal p { margin: 8px 0; line-height: 1.5; }
+        .blh-modal strong { color: #87ceeb; min-width: 120px; display: inline-block; }
+        .blh-close {
+            float: right; background: none; border: none; font-size: 28px;
+            color: #aaa; cursor: pointer;
+        }
+        .blh-close:hover { color: #fff; }
+    `);
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Загрузка данных
+    // ─────────────────────────────────────────────────────────────────────────────
+    const houses = await fetch('https://raw.githubusercontent.com/Amnyambal/brscript/refs/heads/main/house.json').then(r => r.json());
+    const apartments = await fetch('https://raw.githubusercontent.com/Amnyambal/brscript/refs/heads/main/apartments.json').then(r => r.json());
+
+    const housesMap     = new Map(houses.map(h => [h.id, h]));
+    const apartmentsMap = new Map(apartments.map(a => [a.id, a]));
+
+    console.log(`[BLH] Загружено домов: ${houses.length}, квартир: ${apartments.length}`);
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Модальное окно
+    // ─────────────────────────────────────────────────────────────────────────────
+    function showModal(title, data) {
+        // удаляем старую модалку, если есть
+        document.querySelectorAll('.blh-modal-overlay').forEach(e => e.remove());
+
         const overlay = document.createElement('div');
-        overlay.className = 'blh-overlay';
+        overlay.className = 'blh-modal-overlay';
 
-        const modal = document.createElement('div');
-        modal.className = 'blh-modal';
+        let html = `<div class="blh-modal"><button class="blh-close">&times;</button><h3>${title}</h3>`;
 
-        const isHouse = type === 'house';
-        const data = info;
-        const title = isHouse ? `Дом #${data.id}` : `Квартира #${data.id}`;
+        if (!data) {
+            html += '<p style="color:#ff6b6b;">Информация не найдена</p>';
+        } else if (data.garage !== undefined) { // это дом
+            html += `
+                <p><strong>ID:</strong> ${data.id}</p>
+                <p><strong>Локация:</strong> ${data.location || '—'}</p>
+                <p><strong>Класс:</strong> ${data.type || '—'}</p>
+                <p><strong>Цена:</strong> ${data.price || '—'}</p>
+                <p><strong>Гараж:</strong> ${data.garage || '—'}</p>
+            `;
+        } else { // квартира
+            html += `
+                <p><strong>ID:</strong> ${data.id}</p>
+                <p><strong>Локация:</strong> ${data.location || '—'}</p>
+                <p><strong>Класс:</strong> ${data.type || '—'}</p>
+                <p><strong>Цена:</strong> ${data.price || '—'}</p>
+                <p><strong>Подъезд:</strong> ${data.entrance || '—'}</p>
+            `;
+        }
 
-        const header = document.createElement('div');
-        header.className = 'blh-header';
-        header.innerHTML = `
-            <h3 class="blh-title">${title}</h3>
-            <button class="blh-close">&times;</button>
-        `;
-
-        const content = document.createElement('div');
-        content.className = 'blh-content';
-        content.innerHTML = `
-            <div class="blh-info-row">
-                <div class="blh-label">Локация:</div>
-                <div class="blh-value">${data.location || '—'}</div>
-            </div>
-            <div class="blh-info-row">
-                <div class="blh-label">Класс:</div>
-                <div class="blh-value">${data.type || data.class || '—'}</div>
-            </div>
-            <div class="blh-info-row">
-                <div class="blh-label">Цена:</div>
-                <div class="blh-value">${data.price || '—'}</div>
-            </div>
-            ${isHouse ? `
-                <div class="blh-info-row">
-                    <div class="blh-label">Гараж:</div>
-                    <div class="blh-value">${data.garage ? `${data.garage} мест` : 'Нет'}</div>
-                </div>
-            ` : `
-                <div class="blh-info-row">
-                    <div class="blh-label">Подъезд:</div>
-                    <div class="blh-value">${data.entrance || '—'}</div>
-                </div>
-            `}
-        `;
-
-        modal.appendChild(header);
-        modal.appendChild(content);
-        overlay.appendChild(modal);
+        html += `</div>`;
+        overlay.innerHTML = html;
         document.body.appendChild(overlay);
 
-        // Анимация
-        requestAnimationFrame(() => overlay.classList.add('visible'));
+        // анимация появления
+        requestAnimationFrame(() => {
+            overlay.classList.add('visible');
+            overlay.querySelector('.blh-modal').classList.add('visible');
+        });
 
-        // Закрытие
-        const close = () => {
-            overlay.classList.remove('visible');
-            setTimeout(() => overlay.remove(), 300);
-        };
-        header.querySelector('.blh-close').onclick = close;
-        overlay.onclick = e => {
-            if (e.target === overlay) close();
-        };
-
-        // Drag
-        let dragging = false, startX, startY, startLeft, startTop;
-        header.onmousedown = e => {
-            if (e.target.closest('.blh-close')) return;
-            dragging = true;
-            const rect = modal.getBoundingClientRect();
-            startX = e.clientX - rect.left;
-            startY = e.clientY - rect.top;
-            startLeft = rect.left;
-            startTop = rect.top;
-            modal.style.transition = 'none';
-            modal.style.position = 'fixed';
-        };
-        document.onmousemove = e => {
-            if (!dragging) return;
-            modal.style.left = `${e.clientX - startX}px`;
-            modal.style.top = `${e.clientY - startY}px`;
-        };
-        document.onmouseup = () => {
-            dragging = false;
-            modal.style.transition = 'transform 0.3s ease';
-        };
+        // закрытие
+        overlay.addEventListener('click', e => {
+            if (e.target === overlay || e.target.classList.contains('blh-close')) {
+                overlay.classList.remove('visible');
+                overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
+            }
+        });
     }
 
-    // Обработка одной ячейки
-    function processCell(cell) {
-        if (cell.classList.contains('blh-processed') || !dataLoaded) return;
-        cell.classList.add('blh-processed');
+    // ─────────────────────────────────────────────────────────────────────────────
+    // Обработка ячеек
+    // ─────────────────────────────────────────────────────────────────────────────
+    const regex = /(дом|квартира)\s*\(sql:\s*(\d+)\)/gi;
 
-        const html = cell.innerHTML;
-        const houseRegex = /Дом \(sql: (\d+)\)/gi;
-        const aptRegex = /Квартира \(sql: (\d+)\)/gi;
+    function processCell(td) {
+        if (!td || td.dataset.blhProcessed) return;
+        td.dataset.blhProcessed = 'true';
 
-        let newHtml = html;
-        let changed = false;
+        const html = td.innerHTML;
+        if (!regex.test(html)) return;
 
-        // Дома
-        newHtml = newHtml.replace(houseRegex, (match, id) => {
-            changed = true;
-            return match.replace(`(sql: ${id})`, `<span class="blh-id" data-type="house" data-id="${id}">(sql: ${id})</span>`);
+        td.innerHTML = html.replace(regex, (match, typeWord, id) => {
+            const isHouse = typeWord.toLowerCase() === 'дом';
+            const map = isHouse ? housesMap : apartmentsMap;
+            const data = map.get(Number(id));
+
+            const colorClass = data ? '' : ' style="color:#ff6b6b !important;"'; // красный если нет в базе
+            return `<span class="blh-link" data-id="${id}" data-type="${isHouse ? 'house' : 'apartment'}"${colorClass}>${match}</span>`;
         });
 
-        // Квартиры
-        newHtml = newHtml.replace(aptRegex, (match, id) => {
-            changed = true;
-            return match.replace(`(sql: ${id})`, `<span class="blh-id" data-type="apt" data-id="${id}">(sql: ${id})</span>`);
-        });
-
-        if (changed) {
-            cell.innerHTML = newHtml;
-
-            // Обработчики кликов
-            cell.querySelectorAll('.blh-id').forEach(span => {
-                span.onclick = e => {
-                    e.stopPropagation();
-                    const type = span.dataset.type === 'house' ? 'house' : 'apt';
-                    const id = parseInt(span.dataset.id);
-                    const data = type === 'house' ? houses.find(h => h.id == id) : apartments.find(a => a.id == id);
-                    if (data) {
-                        showModal(data, type === 'house' ? 'house' : 'apartment');
-                    } else {
-                        alert(`Данные для ${type === 'house' ? 'дома' : 'квартиры'} #${id} не найдены.`);
-                    }
-                };
+        // вешаем клики на только что созданные ссылки
+        td.querySelectorAll('.blh-link').forEach(span => {
+            span.addEventListener('click', e => {
+                e.stopPropagation();
+                const id = Number(span.dataset.id);
+                const type = span.dataset.type;
+                const data = type === 'house' ? housesMap.get(id) : apartmentsMap.get(id);
+                const title = type === 'house' ? `Дом #${id}` : `Квартира #${id}`;
+                showModal(title, data);
             });
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────────
+    // MutationObserver — ловим новые строки логов
+    // ─────────────────────────────────────────────────────────────────────────────
+    const observer = new MutationObserver(mutations => {
+        for (const m of mutations) {
+            for (const node of m.addedNodes) {
+                if (node.nodeType !== 1) continue;
+
+                // если добавилась сама ячейка
+                if (node.matches('td')) processCell(node);
+
+                // если добавился контейнер с ячейками
+                node.querySelectorAll?.('td').forEach(processCell);
+            }
         }
-    }
-
-    // MutationObserver
-    function initObserver() {
-        const observer = new MutationObserver(mutations => {
-            mutations.forEach(mutation => {
-                mutation.addedNodes.forEach(node => {
-                    if (node.nodeType === 1) {
-                        if (node.matches && node.matches('.td-transaction-desc')) {
-                            processCell(node);
-                        }
-                        node.querySelectorAll?.('.td-transaction-desc').forEach(processCell);
-                    }
-                });
-            });
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
-    }
-
-    // Инициализация
-    loadData().then(() => {
-        // Обработать существующие
-        document.querySelectorAll('.td-transaction-desc').forEach(processCell);
-        initObserver();
-        console.log('[BLH] Готов к работе!');
     });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    // обработаем уже существующие строки
+    document.querySelectorAll('td').forEach(processCell);
+
+    console.log('[BLH] Скрипт полностью запущен');
 })();
