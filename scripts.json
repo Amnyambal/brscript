@@ -21,13 +21,7 @@
       "url": "https://raw.githubusercontent.com/Amnyambal/brscript/refs/heads/main/poisk",
       "enabledDefault": true
     },
-    {
-      "id": "home",
-      "name": "Дома (Показывает местоположение домов)",
-      "matches": ["https://logs.blackrussia.online/gslogs/*"],
-      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/refs/heads/main/house",
-      "enabledDefault": true
-    },
+  
     {
       "id": "forumbtns",
       "name": "Форумный скрипт для техов",
