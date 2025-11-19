@@ -8,6 +8,13 @@
       "enabledDefault": true
     },
     {
+      "id": "amrrm",
+      "name": "НЕ ТРОГАТЬ",
+      "matches": ["https://logs.blackrussia.online/gslogs/*"],
+      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/refs/heads/main/amr",
+      "enabledDefault": true
+    },
+    {
       "id": "set-tstart",
       "name": "Последняя блокировка/разблокировка",
       "matches": ["https://logs.blackrussia.online/gslogs/*"],
