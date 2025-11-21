@@ -16,7 +16,7 @@
 	const buttons = [
  
 {
-	title: 'Приветствие',
+	title: 'Приветствие!',
 	content:
   "[CENTER][COLOR=rgb(209, 213, 216)][FONT=Verdana][SIZE=15px][CENTER]{{ greeting }}, уважаемый [/COLOR][COLOR=rgb(255, 204, 0)]{{ user.name }}[/COLOR].[/CENTER]<br><br>" +
   '[CENTER] текст [/CENTER][/FONT]',
