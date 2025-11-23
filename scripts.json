@@ -21,7 +21,13 @@
       "url": "https://raw.githubusercontent.com/Amnyambal/brscript/refs/heads/main/poisk",
       "enabledDefault": true
     },
-  
+  {
+      "id": "batton",
+      "name": "Кнопки переходники",
+      "matches": ["https://forum.blackrussia.online/*"],
+      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/refs/heads/main/batton",
+      "enabledDefault": true
+    },
     {
       "id": "forumbtns",
       "name": "Форумный скрипт для техов",
