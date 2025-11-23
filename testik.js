@@ -1,22 +1,15 @@
-// ==UserScript==
-// @name         Black Russia: Ultimate Suite (Nav + Moderation)
-// @namespace    https://forum.blackrussia.online
-// @version      14.0
-// @description  Объединенный скрипт: Навигационная панель v13 + Скрипт быстрых ответов.
-// @author       Dont Sorry (Combined by AI)
-// @match        https://forum.blackrussia.online/*
-// @grant        GM_setValue
-// @grant        GM_getValue
-// @grant        GM_registerMenuCommand
-// @license      MIT
-// ==/UserScript==
+/* 
+   КОД ДЛЯ ЗАГРУЗКИ С GITHUB
+   Вставь этот код в файл forum-buttons.js в репозитории brscript
+*/
 
-// ==========================================================================
-// ЧАСТЬ 1: НАВИГАЦИОННАЯ ПАНЕЛЬ (v13.0 - С выбором серверов)
-// ==========================================================================
 (function() {
     'use strict';
 
+    // ==========================================================================
+    // ЧАСТЬ 1: НАВИГАЦИОННАЯ ПАНЕЛЬ (v13.0 - С выбором серверов)
+    // ==========================================================================
+    
     // --- БАЗА ДАННЫХ ---
     const DATA_TECH = [
         { text: 'RED (1)', link: 'https://forum.blackrussia.online/forums/Технический-раздел-red.226/', color: '#8B008B' },
@@ -192,14 +185,14 @@
         { text: 'KALUGA (79)', link: 'https://forum.blackrussia.online/forums/Сервер-№79-kaluga.3498/', color: '#0000CD' },
         { text: 'NOVGOROD (80)', link: 'https://forum.blackrussia.online/forums/Сервер-№80-novgorod.3533/', color: '#0000CD' },
         { text: 'TAGANROG (81)', link: 'https://forum.blackrussia.online/forums/Сервер-№81-taganrog.3569/', color: '#0000CD' },
-        { text: 'VOLOGDA (82)', link: 'https://forum.blackrussia.online/forums/Сервер-№82-vologda.3604/', color: '#0000CD' },
-        { text: 'TVER (83)', link: 'https://forum.blackrussia.online/forums/Сервер-№83-tver.3642/', color: '#0000CD' },
-        { text: 'TOMSK (84)', link: 'https://forum.blackrussia.online/forums/Сервер-№84-tomsk.3739/', color: '#0000CD' },
-        { text: 'IZHEVSK (85)', link: 'https://forum.blackrussia.online/forums/Сервер-№85-izhevsk.3746/', color: '#0000CD' },
-        { text: 'SURGUT (86)', link: 'https://forum.blackrussia.online/forums/Сервер-№86-surgut.3811/', color: '#0000CD' },
-        { text: 'PODOLSK (87)', link: 'https://forum.blackrussia.online/forums/Сервер-№87-podolsk.3816/', color: '#0000CD' },
-        { text: 'MAGADAN (88)', link: 'https://forum.blackrussia.online/forums/Сервер-№88-magadan.3911/', color: '#0000CD' },
-        { text: 'CHEREPOVETS (89)', link: 'https://forum.blackrussia.online/forums/Сервер-№89-cherepovets.3946/', color: '#0000CD' },
+        { text: 'VOLOGDA (82)', link: 'https://forum.blackrussia.online/forums/Сервер-№82-vologda.3605/', color: '#0000CD' },
+        { text: 'TVER (83)', link: 'https://forum.blackrussia.online/forums/Сервер-№83-tver.3643/', color: '#8B008B' },
+        { text: 'TOMSK (84)', link: 'https://forum.blackrussia.online/forums/Сервер-№84-tomsk.3740/', color: '#8B008B' },
+        { text: 'IZHEVSK (85)', link: 'https://forum.blackrussia.online/forums/Сервер-№85-izhevsk.3747/', color: '#8B008B' },
+        { text: 'SURGUT (86)', link: 'https://forum.blackrussia.online/forums/Сервер-№86-surgut.3812/', color: '#8B008B' },
+        { text: 'PODOLSK (87)', link: 'https://forum.blackrussia.online/forums/Сервер-№87-podolsk.3817/', color: '#8B008B' },
+        { text: 'MAGADAN (88)', link: 'https://forum.blackrussia.online/forums/Сервер-№88-magadan.3912/', color: '#8B008B' },
+        { text: 'CHEREPOVETS (89)', link: 'https://forum.blackrussia.online/forums/Сервер-№89-cherepovets.3978/', color: '#8B008B' },
     ];
 
     const DATA_PLAYER_COMPLAINT = [
@@ -296,6 +289,7 @@
 
     const OPS_LINK = { text: 'ОПС', href: 'https://forum.blackrussia.online/threads/%D0%9E%D0%B1%D1%89%D0%B8%D0%B5-%D0%BF%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0-%D1%81%D0%B5%D1%80%D0%B2%D0%B5%D1%80%D0%BE%D0%B2.312571/', color: '#f59e0b', glow: true };
 
+    // --- ХРАНИЛИЩЕ ---
     const STORAGE = {
         POS: 'fnp_pos_v13',
         STATE: 'fnp_state_v13',
@@ -312,9 +306,63 @@
     });
 
     const getSelectedServers = () => {
-        const saved = GM_getValue(STORAGE.SELECTED);
-        if (!saved) return [76, 77, 78, 79, 80];
-        return JSON.parse(saved);
+        try {
+            // ВНИМАНИЕ: GM_getValue может не работать, если загрузчик имеет @grant none
+            // Используем fallback на localStorage для сохранения настроек
+            let saved = null;
+            if (typeof GM_getValue !== 'undefined') {
+                saved = GM_getValue(STORAGE.SELECTED);
+            }
+            if (!saved) {
+                saved = localStorage.getItem(STORAGE.SELECTED);
+            }
+            
+            if (!saved) return [76, 77, 78, 79, 80]; // Дефолтные сервера
+            return JSON.parse(saved);
+        } catch (e) {
+            return [76, 77, 78, 79, 80];
+        }
+    };
+
+    const saveSelectedServers = (data) => {
+        const json = JSON.stringify(data);
+        try {
+            if (typeof GM_setValue !== 'undefined') {
+                GM_setValue(STORAGE.SELECTED, json);
+            }
+        } catch(e) {}
+        try {
+            localStorage.setItem(STORAGE.SELECTED, json);
+        } catch(e) {}
+    };
+    
+    // Функции для позиции окна
+    const getPos = () => {
+        try {
+             let saved = (typeof GM_getValue !== 'undefined') ? GM_getValue(STORAGE.POS) : null;
+             if (!saved) saved = localStorage.getItem(STORAGE.POS) ? JSON.parse(localStorage.getItem(STORAGE.POS)) : null;
+             return saved;
+        } catch(e) { return null; }
+    };
+    
+    const savePos = (data) => {
+        try {
+            if (typeof GM_setValue !== 'undefined') GM_setValue(STORAGE.POS, data);
+        } catch(e) {}
+        try { localStorage.setItem(STORAGE.POS, JSON.stringify(data)); } catch(e){}
+    };
+    
+    const getState = () => {
+         try {
+             let saved = (typeof GM_getValue !== 'undefined') ? GM_getValue(STORAGE.STATE) : null;
+             if (saved === null) saved = localStorage.getItem(STORAGE.STATE) === 'true';
+             return saved;
+        } catch(e) { return false; }
+    };
+    
+    const saveState = (val) => {
+        try { if (typeof GM_setValue !== 'undefined') GM_setValue(STORAGE.STATE, val); } catch(e) {}
+        try { localStorage.setItem(STORAGE.STATE, val); } catch(e){}
     };
 
     // --- СТИЛИ ---
@@ -438,7 +486,8 @@
             saveBtn.addEventListener('click', () => {
                 const inputs = body.querySelectorAll('input[type="checkbox"]'); const newSelection = [];
                 inputs.forEach(inp => { if (inp.checked) newSelection.push(parseInt(inp.value)); });
-                newSelection.sort((a,b) => a-b); GM_setValue(STORAGE.SELECTED, JSON.stringify(newSelection));
+                newSelection.sort((a,b) => a-b); 
+                saveSelectedServers(newSelection); // ИСПОЛЬЗУЕМ ФУНКЦИЮ С FALLBACK
                 renderMenu(); overlay.classList.remove('open');
             });
             cancelBtn.addEventListener('click', () => { overlay.classList.remove('open'); });
@@ -465,17 +514,23 @@
     toggleBtn.addEventListener('pointermove', (e) => { if (!isDragging) return; const dx = e.clientX - startX; const dy = e.clientY - startY; if (Math.abs(dx) > 5 || Math.abs(dy) > 5) hasMoved = true; if (hasMoved) updatePosition(initialX + dx, initialY + dy); });
     const endDrag = (e) => { if (!isDragging) return; isDragging = false; toggleBtn.releasePointerCapture(e.pointerId); toggleBtn.style.transition = 'transform 0.2s'; if (hasMoved) snapToEdge(); else toggleMenu(); };
     toggleBtn.addEventListener('pointerup', endDrag); toggleBtn.addEventListener('pointercancel', endDrag);
-    const snapToEdge = () => { const winW = window.innerWidth; const centerX = btnX + 25; let targetX = centerX < winW / 2 ? 10 : winW - 60; toggleBtn.style.transition = 'left 0.3s ease, top 0.3s ease'; updatePosition(targetX, btnY); GM_setValue(STORAGE.POS, { x: targetX, y: btnY }); setTimeout(() => { toggleBtn.style.transition = 'transform 0.2s'; updateMenuPosition(); }, 310); };
-    const toggleMenu = () => { const show = menu.classList.toggle('show'); toggleBtn.classList.toggle('active', show); if (show) updateMenuPosition(); GM_setValue(STORAGE.STATE, show); };
+    const snapToEdge = () => { const winW = window.innerWidth; const centerX = btnX + 25; let targetX = centerX < winW / 2 ? 10 : winW - 60; toggleBtn.style.transition = 'left 0.3s ease, top 0.3s ease'; updatePosition(targetX, btnY); savePos({ x: targetX, y: btnY }); setTimeout(() => { toggleBtn.style.transition = 'transform 0.2s'; updateMenuPosition(); }, 310); };
+    const toggleMenu = () => { const show = menu.classList.toggle('show'); toggleBtn.classList.toggle('active', show); if (show) updateMenuPosition(); saveState(show); };
 
     const init = () => {
         renderMenu();
-        const pos = GM_getValue(STORAGE.POS); if (pos) updatePosition(pos.x, pos.y); else updatePosition(window.innerWidth - 60, window.innerHeight * 0.6);
-        if (GM_getValue(STORAGE.STATE, false)) toggleMenu();
+        const pos = getPos(); if (pos) updatePosition(pos.x, pos.y); else updatePosition(window.innerWidth - 60, window.innerHeight * 0.6);
+        if (getState()) toggleMenu();
         window.addEventListener('resize', snapToEdge);
         document.addEventListener('pointerdown', (e) => { if (menu.classList.contains('show') && !menu.contains(e.target) && !toggleBtn.contains(e.target) && !document.querySelector('.fnp-modal-overlay')?.contains(e.target)) { toggleMenu(); } });
     };
-    GM_registerMenuCommand("Сброс настроек панели", () => { GM_setValue(STORAGE.POS, null); GM_setValue(STORAGE.SELECTED, null); location.reload(); });
+    
+    try {
+        if (typeof GM_registerMenuCommand !== 'undefined') {
+            GM_registerMenuCommand("Сброс настроек панели", () => { savePos(null); saveSelectedServers(null); location.reload(); });
+        }
+    } catch(e) {}
+    
     init();
 })();
 
