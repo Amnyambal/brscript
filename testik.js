@@ -1,6 +1,6 @@
 (function () {
     'use strict';
-    
+
     console.log('[BR SCRIPT] v16 Loaded (Reliable Buttons + Exact Styles)');
 
     // ========================================================================
@@ -9,7 +9,7 @@
     try {
         (function() {
             const STORAGE_PREFIX = 'br_panel_v3_';
-            
+
             // --- ДАННЫЕ СЕРВЕРОВ ---
             const DATA_TECH = [
                 { text: 'RED (1)', link: 'https://forum.blackrussia.online/forums/Технический-раздел-red.226/', color: '#8B008B' },
@@ -468,7 +468,7 @@
                 pos.y = Math.min(Math.max(0, y), window.innerHeight - 50);
                 toggleBtn.style.left = pos.x + 'px';
                 toggleBtn.style.top = pos.y + 'px';
-                
+
                 // Menu Align
                 const rect = toggleBtn.getBoundingClientRect();
                 menu.style.left = (rect.right + 310 > window.innerWidth ? rect.left - 310 : rect.right + 10) + 'px';
@@ -490,12 +490,12 @@
                 isDragging = false;
                 toggleBtn.releasePointerCapture(e.pointerId);
                 toggleBtn.style.transition = 'all 0.3s';
-                
+
                 // Snap to edge
                 pos.x = pos.x < window.innerWidth/2 ? 10 : window.innerWidth - 60;
                 updatePos(pos.x, pos.y);
                 localStorage.setItem(STORAGE_PREFIX + 'pos', JSON.stringify(pos));
-                
+
                 if(Math.abs(e.clientX - 24 - pos.x) < 10) toggleMenu();
             });
 
@@ -588,7 +588,7 @@
                 // Insert Buttons
                 const addButton = (name, id, style) => {
                     if (document.getElementById(id)) return;
-                    
+
                     const btn = document.createElement('button');
                     btn.type = 'button';
                     btn.className = 'button--primary button rippleButton';
@@ -629,10 +629,10 @@
                     btn.style.cssText = 'margin-left: 5px; border-radius: 13px; background-color: #FF4500; border-color: #E6E6FA;';
                     btn.innerText = 'Ответы';
                     btn.onclick = () => {
-                        XF.alert(`<div class="select_answer">${buttons.map((btn, i) => 
+                        XF.alert(`<div class="select_answer">${buttons.map((btn, i) =>
                             `<button id="answers-${i}" class="button--primary button rippleButton" style="margin:4px; border-radius: 13px;"><span class="button-text">${btn.title}</span></button>`
                         ).join('')}</div>`, null, 'Выберите ответ:');
-                        
+
                         setTimeout(() => {
                             buttons.forEach((btn, i) => {
                                 const b = document.getElementById(`answers-${i}`);
@@ -649,7 +649,7 @@
             const loader = setInterval(() => {
                 if (document.querySelector('.button--icon--reply')) {
                     init();
-                    // Optional: clearInterval(loader) if you want to run once. 
+                    // Optional: clearInterval(loader) if you want to run once.
                     // Keeping it running handles dynamic page updates (like opening threads in modal).
                 }
             }, 1000);
@@ -659,12 +659,12 @@
                 const template = Handlebars.compile(buttons[id].content);
                 const data = getThreadData();
                 const content = template(data);
-                
+
                 const editor = document.querySelector('.fr-element.fr-view p');
                 if (editor) {
                     editor.innerHTML = content;
                 }
-                
+
                 const closeOverlay = document.querySelector('a.overlay-titleCloser');
                 if (closeOverlay) closeOverlay.click();
 
@@ -697,7 +697,7 @@
                 formData.append('_xfRequestUri', window.location.pathname);
                 formData.append('_xfWithData', 1);
                 formData.append('_xfResponseType', 'json');
-                
+
                 if(pin) {
                     formData.append('discussion_open', 1);
                     formData.append('sticky', 1);
