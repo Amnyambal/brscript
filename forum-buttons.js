@@ -1,37 +1,16 @@
 (function () {
     'use strict';
-
-    console.log('[BR Script] Запуск ядра v14.5 (LocalStorage Edition)...');
-
-    // ========================================================================
-    // СИСТЕМНАЯ БИБЛИОТЕКА (Для работы без GM_grant)
-    // ========================================================================
-    const LS = {
-        get: function(key, def) {
-            try {
-                const val = localStorage.getItem(key);
-                return val ? JSON.parse(val) : def;
-            } catch (e) { return def; }
-        },
-        set: function(key, val) {
-            try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {}
-        },
-        del: function(key) {
-            try { localStorage.removeItem(key); } catch (e) {}
-        }
-    };
+    
+    console.log('[BR SCRIPT] v15 Loaded (Original Design + Fixes)');
 
     // ========================================================================
-    // МОДУЛЬ 1: НАВИГАЦИОННАЯ ПАНЕЛЬ (Server Selector)
+    // МОДУЛЬ 1: НАВИГАЦИОННАЯ ПАНЕЛЬ (v15)
     // ========================================================================
     try {
         (function() {
-            // --- КОНФИГ И ДАННЫЕ ---
-            const STORAGE_KEY_POS = 'br_panel_pos_v2';
-            const STORAGE_KEY_SERVERS = 'br_panel_servers_v2';
-            const STORAGE_KEY_STATE = 'br_panel_state_v2';
-
-            // ДАННЫЕ СЕРВЕРОВ (Массивы сохранены полностью для работы)
+            const STORAGE_PREFIX = 'br_panel_v3_';
+            
+            // --- 1. Технический раздел (Фиолетовый) ---
             const DATA_TECH = [
                 { text: 'RED (1)', link: 'https://forum.blackrussia.online/forums/Технический-раздел-red.226/', color: '#8B008B' },
                 { text: 'GREEN (2)', link: 'https://forum.blackrussia.online/forums/Технический-раздел-green.227/', color: '#8B008B' },
@@ -124,6 +103,7 @@
                 { text: 'CHEREPOVETS (89)', link: 'https://forum.blackrussia.online/forums/Технический-раздел-cherepovets.3978/', color: '#8B008B' },
             ];
 
+            // --- 2. Жалобы на тех (Синий) -> (Сервер-№) ---
             const DATA_TECH_COMPLAINT = [
                 { text: 'RED (1)', link: 'https://forum.blackrussia.online/forums/Сервер-№1-red.1182/', color: '#0000CD' },
                 { text: 'GREEN (2)', link: 'https://forum.blackrussia.online/forums/Сервер-№2-green.1183/', color: '#0000CD' },
@@ -180,42 +160,43 @@
                 { text: 'MURMANSK (53)', link: 'https://forum.blackrussia.online/forums/Сервер-№53-murmansk.2345/', color: '#0000CD' },
                 { text: 'PENZA (54)', link: 'https://forum.blackrussia.online/forums/Сервер-№54-penza.2387/', color: '#0000CD' },
                 { text: 'KURSK (55)', link: 'https://forum.blackrussia.online/forums/Сервер-№55-kursk.2429/', color: '#0000CD' },
-                { text: 'ARKHANGELSK (56)', link: 'https://forum.blackrussia.online/forums/Сервер-№56-arkhangelsk.2500/', color: '#0000CD' },
-                { text: 'ORENBURG (57)', link: 'https://forum.blackrussia.online/forums/Сервер-№57-orenburg.2545/', color: '#0000CD' },
-                { text: 'KIROV (58)', link: 'https://forum.blackrussia.online/forums/Сервер-№58-kirov.2584/', color: '#0000CD' },
-                { text: 'KEMEROVO (59)', link: 'https://forum.blackrussia.online/forums/Сервер-№59-kemerovo.2626/', color: '#0000CD' },
-                { text: 'TYUMEN (60)', link: 'https://forum.blackrussia.online/forums/Сервер-№60-tuymen.2663/', color: '#0000CD' },
-                { text: 'TOLYATTI (61)', link: 'https://forum.blackrussia.online/forums/Сервер-№61-tolyatti.2702/', color: '#0000CD' },
-                { text: 'IVANOVO (62)', link: 'https://forum.blackrussia.online/forums/Сервер-№62-ivanovo.2735/', color: '#0000CD' },
-                { text: 'STAVROPOL (63)', link: 'https://forum.blackrussia.online/forums/Сервер-№63-stavropol.2767/', color: '#0000CD' },
-                { text: 'SMOLENSK (64)', link: 'https://forum.blackrussia.online/forums/Сервер-№64-smolensk.2799/', color: '#0000CD' },
-                { text: 'PSKOV (65)', link: 'https://forum.blackrussia.online/forums/Сервер-№65-pskov.2831/', color: '#0000CD' },
-                { text: 'BRYANSK (66)', link: 'https://forum.blackrussia.online/forums/Сервер-№66-bryansk.2863/', color: '#0000CD' },
-                { text: 'OREL (67)', link: 'https://forum.blackrussia.online/forums/Сервер-№67-orel.2895/', color: '#0000CD' },
-                { text: 'YAROSLAVL (68)', link: 'https://forum.blackrussia.online/forums/Сервер-№68-yaroslavl.2927/', color: '#0000CD' },
-                { text: 'BARNAUL (69)', link: 'https://forum.blackrussia.online/forums/Сервер-№69-barnaul.2959/', color: '#0000CD' },
-                { text: 'LIPETSK (70)', link: 'https://forum.blackrussia.online/forums/Сервер-№70-lipetsk.2991/', color: '#0000CD' },
-                { text: 'ULYANOVSK (71)', link: 'https://forum.blackrussia.online/forums/Сервер-№71-ulyanovsk.3023/', color: '#0000CD' },
-                { text: 'YAKUTSK (72)', link: 'https://forum.blackrussia.online/forums/Сервер-№72-yakutsk.3055/', color: '#0000CD' },
-                { text: 'TAMBOV (73)', link: 'https://forum.blackrussia.online/forums/Сервер-№73-tambov.3309/', color: '#0000CD' },
-                { text: 'BRATSK (74)', link: 'https://forum.blackrussia.online/forums/Сервер-№74-bratsk.3344/', color: '#0000CD' },
-                { text: 'ASTRAKHAN (75)', link: 'https://forum.blackrussia.online/forums/Сервер-№75-astrakhan.3379/', color: '#0000CD' },
-                { text: 'CHITA (76)', link: 'https://forum.blackrussia.online/forums/Сервер-№76-chita.3414/', color: '#0000CD' },
-                { text: 'KOSTROMA (77)', link: 'https://forum.blackrussia.online/forums/Сервер-№77-kostroma.3449/', color: '#0000CD' },
-                { text: 'VLADIMIR (78)', link: 'https://forum.blackrussia.online/forums/Сервер-№78-vladimir.3484/', color: '#0000CD' },
-                { text: 'KALUGA (79)', link: 'https://forum.blackrussia.online/forums/Сервер-№79-kaluga.3519/', color: '#0000CD' },
-                { text: 'NOVGOROD (80)', link: 'https://forum.blackrussia.online/forums/Сервер-№80-novgorod.3555/', color: '#0000CD' },
-                { text: 'TAGANROG (81)', link: 'https://forum.blackrussia.online/forums/Сервер-№81-taganrog.3590/', color: '#0000CD' },
-                { text: 'VOLOGDA (82)', link: 'https://forum.blackrussia.online/forums/Сервер-№82-vologda.3625/', color: '#0000CD' },
-                { text: 'TVER (83)', link: 'https://forum.blackrussia.online/forums/Сервер-№83-tver.3666/', color: '#0000CD' },
-                { text: 'TOMSK (84)', link: 'https://forum.blackrussia.online/forums/Сервер-№84-tomsk.3728/', color: '#0000CD' },
-                { text: 'IZHEVSK (85)', link: 'https://forum.blackrussia.online/forums/Сервер-№85-izhevsk.3767/', color: '#0000CD' },
-                { text: 'SURGUT (86)', link: 'https://forum.blackrussia.online/forums/Сервер-№86-surgut.3800/', color: '#0000CD' },
-                { text: 'PODOLSK (87)', link: 'https://forum.blackrussia.online/forums/Сервер-№87-podolsk.3837/', color: '#0000CD' },
-                { text: 'MAGADAN (88)', link: 'https://forum.blackrussia.online/forums/Сервер-№88-magadan.3932/', color: '#0000CD' },
-                { text: 'CHEREPOVETS (89)', link: 'https://forum.blackrussia.online/forums/Сервер-№89-cherepovets.3967/', color: '#0000CD' },
+                { text: 'ARKHANGELSK (56)', link: 'https://forum.blackrussia.online/forums/Сервер-№56-arkhangelsk.2471/', color: '#0000CD' },
+                { text: 'ORENBURG (57)', link: 'https://forum.blackrussia.online/forums/Сервер-№57-orenburg.2513/', color: '#0000CD' },
+                { text: 'KIROV (58)', link: 'https://forum.blackrussia.online/forums/Сервер-№58-kirov.2515/', color: '#0000CD' },
+                { text: 'KEMEROVO (59)', link: 'https://forum.blackrussia.online/forums/Сервер-№59-kemerovo.2597/', color: '#0000CD' },
+                { text: 'TYUMEN (60)', link: 'https://forum.blackrussia.online/forums/Сервер-№60-tuymen.2640/', color: '#0000CD' },
+                { text: 'TOLYATTI (61)', link: 'https://forum.blackrussia.online/forums/Сервер-№61-tolyatti.2681/', color: '#0000CD' },
+                { text: 'IVANOVO (62)', link: 'https://forum.blackrussia.online/forums/Сервер-№62-ivanovo.2713/', color: '#0000CD' },
+                { text: 'STAVROPOL (63)', link: 'https://forum.blackrussia.online/forums/Сервер-№63-stavropol.2746/', color: '#0000CD' },
+                { text: 'SMOLENSK (64)', link: 'https://forum.blackrussia.online/forums/Сервер-№64-smolensk.2778/', color: '#0000CD' },
+                { text: 'PSKOV (65)', link: 'https://forum.blackrussia.online/forums/Сервер-№65-pskov.2810/', color: '#0000CD' },
+                { text: 'BRYANSK (66)', link: 'https://forum.blackrussia.online/forums/Сервер-№66-bryansk.2842/', color: '#0000CD' },
+                { text: 'OREL (67)', link: 'https://forum.blackrussia.online/forums/Сервер-№67-orel.2874/', color: '#0000CD' },
+                { text: 'YAROSLAVL (68)', link: 'https://forum.blackrussia.online/forums/Сервер-№68-yaroslavl.2906/', color: '#0000CD' },
+                { text: 'BARNAUL (69)', link: 'https://forum.blackrussia.online/forums/Сервер-№69-barnaul.2938/', color: '#0000CD' },
+                { text: 'LIPETSK (70)', link: 'https://forum.blackrussia.online/forums/Сервер-№70-lipetsk.2970/', color: '#0000CD' },
+                { text: 'ULYANOVSK (71)', link: 'https://forum.blackrussia.online/forums/Сервер-№71-ulyanovsk.3002/', color: '#0000CD' },
+                { text: 'YAKUTSK (72)', link: 'https://forum.blackrussia.online/forums/Сервер-№72-yakutsk.3034/', color: '#0000CD' },
+                { text: 'TAMBOV (73)', link: 'https://forum.blackrussia.online/forums/Сервер-№73-tambov.3288/', color: '#0000CD' },
+                { text: 'BRATSK (74)', link: 'https://forum.blackrussia.online/forums/Сервер-№74-bratsk.3323/', color: '#0000CD' },
+                { text: 'ASTRAKHAN (75)', link: 'https://forum.blackrussia.online/forums/Сервер-№75-astrakhan.3358/', color: '#0000CD' },
+                { text: 'CHITA (76)', link: 'https://forum.blackrussia.online/forums/Сервер-№76-chita.3393/', color: '#0000CD' },
+                { text: 'KOSTROMA (77)', link: 'https://forum.blackrussia.online/forums/Сервер-№77-kostroma.3428/', color: '#0000CD' },
+                { text: 'VLADIMIR (78)', link: 'https://forum.blackrussia.online/forums/Сервер-№78-vladimir.3463/', color: '#0000CD' },
+                { text: 'KALUGA (79)', link: 'https://forum.blackrussia.online/forums/Сервер-№79-kaluga.3498/', color: '#0000CD' },
+                { text: 'NOVGOROD (80)', link: 'https://forum.blackrussia.online/forums/Сервер-№80-novgorod.3533/', color: '#0000CD' },
+                { text: 'TAGANROG (81)', link: 'https://forum.blackrussia.online/forums/Сервер-№81-taganrog.3569/', color: '#0000CD' },
+                { text: 'VOLOGDA (82)', link: 'https://forum.blackrussia.online/forums/Сервер-№82-vologda.3604/', color: '#0000CD' },
+                { text: 'TVER (83)', link: 'https://forum.blackrussia.online/forums/Сервер-№83-tver.3642/', color: '#0000CD' },
+                { text: 'TOMSK (84)', link: 'https://forum.blackrussia.online/forums/Сервер-№84-tomsk.3739/', color: '#0000CD' },
+                { text: 'IZHEVSK (85)', link: 'https://forum.blackrussia.online/forums/Сервер-№85-izhevsk.3746/', color: '#0000CD' },
+                { text: 'SURGUT (86)', link: 'https://forum.blackrussia.online/forums/Сервер-№86-surgut.3811/', color: '#0000CD' },
+                { text: 'PODOLSK (87)', link: 'https://forum.blackrussia.online/forums/Сервер-№87-podolsk.3816/', color: '#0000CD' },
+                { text: 'MAGADAN (88)', link: 'https://forum.blackrussia.online/forums/Сервер-№88-magadan.3911/', color: '#0000CD' },
+                { text: 'CHEREPOVETS (89)', link: 'https://forum.blackrussia.online/forums/Сервер-№89-cherepovets.3946/', color: '#0000CD' },
             ];
 
+            // --- 3. Жалобы на игроков (Красный) ---
             const DATA_PLAYER_COMPLAINT = [
                 { text: 'RED (1)', link: 'https://forum.blackrussia.online/forums/Жалобы-на-игроков.88/', color: '#DC143C' },
                 { text: 'GREEN (2)', link: 'https://forum.blackrussia.online/forums/Жалобы-на-игроков.119/', color: '#DC143C' },
@@ -310,7 +291,6 @@
 
             const OPS_LINK = { text: 'ОПС', href: 'https://forum.blackrussia.online/threads/%D0%9E%D0%B1%D1%89%D0%B8%D0%B5-%D0%BF%D1%80%D0%B0%D0%B2%D0%B8%D0%BB%D0%B0-%D1%81%D0%B5%D1%80%D0%B2%D0%B5%D1%80%D0%BE%D0%B2.312571/', color: '#f59e0b', glow: true };
 
-            // --- СПИСОК ВСЕХ СЕРВЕРОВ ДЛЯ МЕНЮ ---
             const SERVER_LIST = DATA_TECH.map((item, index) => {
                 const match = item.text.match(/(.*?) \((\d+)\)/);
                 return {
@@ -320,65 +300,15 @@
                 };
             });
 
-            // --- DOM STYLES ---
-            const style = document.createElement('style');
-            style.textContent = `
-                :root { --fnp-btn: 48px; }
-                .fnp-wrapper { position: fixed; top: 0; left: 0; width: 0; height: 0; z-index: 2147483647; }
-                .fnp-toggle { position: fixed; width: var(--fnp-btn); height: var(--fnp-btn); background: #151515; border: 1px solid rgba(255,255,255,0.2); border-radius: 50%; box-shadow: 0 6px 25px rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; color: #fff; cursor: grab; touch-action: none; user-select: none; transition: transform 0.2s; }
-                .fnp-toggle:active { transform: scale(0.9); cursor: grabbing; }
-                .fnp-toggle.active { background: #2563eb; border-color: #3b82f6; }
-                .fnp-toggle.active svg { transform: rotate(45deg); }
-                .fnp-toggle svg { transition: transform 0.3s; pointer-events: none; }
-                .fnp-menu { position: fixed; background: rgba(20, 20, 20, 0.95); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 10px; display: flex; flex-direction: column; gap: 5px; width: 300px; max-height: 70vh; overflow-y: auto; opacity: 0; visibility: hidden; transform: scale(0.9); transition: opacity 0.2s, transform 0.2s, visibility 0.2s; pointer-events: none; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
-                .fnp-menu.show { opacity: 1; visibility: visible; transform: scale(1); pointer-events: auto; }
-                .fnp-menu::-webkit-scrollbar { width: 4px; }
-                .fnp-menu::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
-                .fnp-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
-                .fnp-link { display: flex; align-items: center; justify-content: center; padding: 6px 2px; font-family: system-ui, -apple-system, sans-serif; font-size: 10px; font-weight: 700; color: #e5e5e5; text-decoration: none; background: rgba(255,255,255,0.05); border-radius: 6px; border: 1px solid transparent; transition: background 0.1s; white-space: nowrap; }
-                .fnp-link:active { background: rgba(255,255,255,0.2); transform: translateY(1px); }
-                .fnp-link.active-page { background: rgba(255,255,255,0.2); color: #fff; border-color: rgba(255,255,255,0.3); }
-                .fnp-link.glow { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.3); }
-                .fnp-divider { height: 1px; background: rgba(255,255,255,0.15); margin: 4px 0; width: 100%; }
-                .fnp-settings-btn { width: 100%; padding: 8px; margin-top: 5px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #aaa; cursor: pointer; display: flex; justify-content: center; align-items: center; }
-                .fnp-settings-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
-                /* Modal */
-                .fnp-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2147483648; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: 0.3s; }
-                .fnp-modal-overlay.open { opacity: 1; visibility: visible; }
-                .fnp-modal { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; width: 90%; max-width: 500px; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
-                .fnp-modal-header { padding: 15px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; color: #fff; font-weight: bold; }
-                .fnp-modal-body { padding: 15px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
-                .fnp-modal-footer { padding: 15px; border-top: 1px solid #333; display: flex; justify-content: flex-end; gap: 10px; }
-                .fnp-checkbox-label { display: flex; align-items: center; gap: 8px; background: #222; padding: 6px; border-radius: 6px; cursor: pointer; user-select: none; color: #ccc; font-size: 12px; border: 1px solid #333; }
-                .fnp-checkbox-label:hover { background: #2a2a2a; }
-                .fnp-checkbox-label input { accent-color: #2563eb; }
-                .fnp-checkbox-label.checked { border-color: #2563eb; background: rgba(37, 99, 235, 0.1); color: #fff; }
-                .fnp-btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; transition: 0.2s; }
-                .fnp-btn-primary { background: #2563eb; color: #fff; }
-                .fnp-btn-primary:hover { background: #1d4ed8; }
-                .fnp-btn-secondary { background: #333; color: #ccc; }
-                .fnp-btn-secondary:hover { background: #444; color: #fff; }
-            `;
-            document.head.appendChild(style);
-
-            // --- DOM CREATION ---
-            const wrapper = document.createElement('div');
-            wrapper.className = 'fnp-wrapper';
-            const toggleBtn = document.createElement('div');
-            toggleBtn.className = 'fnp-toggle';
-            toggleBtn.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
-            const menu = document.createElement('div');
-            menu.className = 'fnp-menu';
-            wrapper.appendChild(menu);
-            wrapper.appendChild(toggleBtn);
-            document.body.appendChild(wrapper);
-
-            // --- LOGIC ---
             function getSelected() {
-                return LS.get(STORAGE_KEY_SERVERS, [76, 77, 78, 79, 80]);
+                const saved = localStorage.getItem(STORAGE_PREFIX + 'servers');
+                return saved ? JSON.parse(saved) : [76, 77, 78, 79, 80];
             }
 
             function renderMenu() {
+                const menu = document.querySelector('.fnp-menu');
+                if(!menu) return;
+                
                 menu.innerHTML = '';
                 const selectedIds = getSelected();
 
@@ -400,7 +330,6 @@
                         return a;
                     };
 
-                    // Группы кнопок
                     const addGroup = (data, labelPrefix) => {
                         const group = document.createElement('div');
                         group.className = 'fnp-grid';
@@ -411,6 +340,7 @@
                         menu.appendChild(group);
                     };
 
+                    // ПОРЯДОК: ЖАЛОБЫ НА ТЕХ (Синие) | ТЕХ РАЗДЕЛ (Фиол) | ЖАЛОБЫ НА ИГРОКОВ (Красн)
                     addGroup(DATA_TECH_COMPLAINT, 'тЖБ');
                     menu.appendChild(Object.assign(document.createElement('div'), {className:'fnp-divider'}));
                     addGroup(DATA_TECH, 'Тех');
@@ -426,7 +356,6 @@
                     menu.appendChild(ops);
                 }
 
-                // Settings Button
                 const settingsBtn = document.createElement('div');
                 settingsBtn.className = 'fnp-settings-btn';
                 settingsBtn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
@@ -435,7 +364,12 @@
             }
 
             function openSettings() {
-                toggleMenu(false); // Close main menu
+                const menu = document.querySelector('.fnp-menu');
+                const toggleBtn = document.querySelector('.fnp-toggle');
+                if(menu) menu.classList.remove('show');
+                if(toggleBtn) toggleBtn.classList.remove('active');
+                localStorage.setItem(STORAGE_PREFIX + 'state', 'false');
+
                 let overlay = document.querySelector('.fnp-modal-overlay');
                 if(!overlay) {
                     overlay = document.createElement('div'); overlay.className = 'fnp-modal-overlay';
@@ -454,7 +388,7 @@
                     overlay.querySelector('#fnp-cancel').onclick = () => overlay.classList.remove('open');
                     overlay.querySelector('#fnp-save').onclick = () => {
                         const checked = Array.from(overlay.querySelectorAll('input:checked')).map(el => +el.value).sort((a,b)=>a-b);
-                        LS.set(STORAGE_KEY_SERVERS, checked);
+                        localStorage.setItem(STORAGE_PREFIX + 'servers', JSON.stringify(checked));
                         renderMenu();
                         overlay.classList.remove('open');
                     };
@@ -476,9 +410,59 @@
                 setTimeout(() => overlay.classList.add('open'), 10);
             }
 
+            // UI SETUP
+            const style = document.createElement('style');
+            style.textContent = `
+                :root { --fnp-btn: 48px; }
+                .fnp-wrapper { position: fixed; top: 0; left: 0; width: 0; height: 0; z-index: 2147483647; }
+                .fnp-toggle { position: fixed; width: var(--fnp-btn); height: var(--fnp-btn); background: #151515; border: 1px solid rgba(255,255,255,0.2); border-radius: 50%; box-shadow: 0 6px 25px rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; color: #fff; cursor: grab; touch-action: none; user-select: none; transition: transform 0.2s; }
+                .fnp-toggle:active { transform: scale(0.9); cursor: grabbing; }
+                .fnp-toggle.active { background: #2563eb; border-color: #3b82f6; }
+                .fnp-toggle.active svg { transform: rotate(45deg); }
+                .fnp-menu { position: fixed; background: rgba(20, 20, 20, 0.95); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 10px; display: flex; flex-direction: column; gap: 5px; width: 300px; max-height: 70vh; overflow-y: auto; opacity: 0; visibility: hidden; transform: scale(0.9); transition: opacity 0.2s, transform 0.2s, visibility 0.2s; pointer-events: none; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+                .fnp-menu.show { opacity: 1; visibility: visible; transform: scale(1); pointer-events: auto; }
+                .fnp-menu::-webkit-scrollbar { width: 4px; }
+                .fnp-menu::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 2px; }
+                .fnp-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
+                .fnp-link { display: flex; align-items: center; justify-content: center; padding: 6px 2px; font-family: system-ui, -apple-system, sans-serif; font-size: 10px; font-weight: 700; color: #e5e5e5; text-decoration: none; background: rgba(255,255,255,0.05); border-radius: 6px; border: 1px solid transparent; transition: background 0.1s; white-space: nowrap; }
+                .fnp-link:active { background: rgba(255,255,255,0.2); transform: translateY(1px); }
+                .fnp-link.active-page { background: rgba(255,255,255,0.2); color: #fff; border-color: rgba(255,255,255,0.3); }
+                .fnp-link.glow { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.3); }
+                .fnp-divider { height: 1px; background: rgba(255,255,255,0.15); margin: 4px 0; width: 100%; }
+                .fnp-settings-btn { width: 100%; padding: 8px; margin-top: 5px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #aaa; cursor: pointer; display: flex; justify-content: center; align-items: center; }
+                .fnp-settings-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+                .fnp-modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 2147483648; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: 0.3s; }
+                .fnp-modal-overlay.open { opacity: 1; visibility: visible; }
+                .fnp-modal { background: #1a1a1a; border: 1px solid #333; border-radius: 12px; width: 90%; max-width: 500px; max-height: 85vh; display: flex; flex-direction: column; box-shadow: 0 20px 50px rgba(0,0,0,0.8); }
+                .fnp-modal-header { padding: 15px; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; color: #fff; font-weight: bold; }
+                .fnp-modal-body { padding: 15px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+                .fnp-modal-footer { padding: 15px; border-top: 1px solid #333; display: flex; justify-content: flex-end; gap: 10px; }
+                .fnp-checkbox-label { display: flex; align-items: center; gap: 8px; background: #222; padding: 6px; border-radius: 6px; cursor: pointer; user-select: none; color: #ccc; font-size: 12px; border: 1px solid #333; }
+                .fnp-checkbox-label:hover { background: #2a2a2a; }
+                .fnp-checkbox-label input { accent-color: #2563eb; }
+                .fnp-checkbox-label.checked { border-color: #2563eb; background: rgba(37, 99, 235, 0.1); color: #fff; }
+                .fnp-btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold; transition: 0.2s; }
+                .fnp-btn-primary { background: #2563eb; color: #fff; }
+                .fnp-btn-primary:hover { background: #1d4ed8; }
+                .fnp-btn-secondary { background: #333; color: #ccc; }
+                .fnp-btn-secondary:hover { background: #444; color: #fff; }
+            `;
+            document.head.appendChild(style);
 
-            // --- DRAG & DROP ---
-            let pos = LS.get(STORAGE_KEY_POS, {x: window.innerWidth - 60, y: window.innerHeight * 0.6});
+            const wrapper = document.createElement('div');
+            wrapper.className = 'fnp-wrapper';
+            const toggleBtn = document.createElement('div');
+            toggleBtn.className = 'fnp-toggle';
+            toggleBtn.innerHTML = `<svg width="24" height="24" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`;
+            const menu = document.createElement('div');
+            menu.className = 'fnp-menu';
+            wrapper.appendChild(menu);
+            wrapper.appendChild(toggleBtn);
+            document.body.appendChild(wrapper);
+
+            // DRAG
+            let savedPos = localStorage.getItem(STORAGE_PREFIX + 'pos');
+            let pos = savedPos ? JSON.parse(savedPos) : {x: window.innerWidth - 60, y: window.innerHeight * 0.6};
             let isDragging = false;
 
             const updatePos = (x, y) => {
@@ -487,7 +471,6 @@
                 toggleBtn.style.left = pos.x + 'px';
                 toggleBtn.style.top = pos.y + 'px';
                 
-                // Menu Align
                 const rect = toggleBtn.getBoundingClientRect();
                 menu.style.left = (rect.right + 310 > window.innerWidth ? rect.left - 310 : rect.right + 10) + 'px';
                 menu.style.top = (rect.bottom + 300 > window.innerHeight ? rect.top - 300 : rect.top) + 'px';
@@ -508,52 +491,36 @@
                 isDragging = false;
                 toggleBtn.releasePointerCapture(e.pointerId);
                 toggleBtn.style.transition = 'all 0.3s';
-                
-                // Snap to edge
                 pos.x = pos.x < window.innerWidth/2 ? 10 : window.innerWidth - 60;
                 updatePos(pos.x, pos.y);
-                LS.set(STORAGE_KEY_POS, pos);
+                localStorage.setItem(STORAGE_PREFIX + 'pos', JSON.stringify(pos));
                 
-                if(Math.abs(e.clientX - 24 - pos.x) < 10) toggleMenu();
+                if(Math.abs(e.clientX - 24 - pos.x) < 10) {
+                    const show = menu.classList.toggle('show');
+                    toggleBtn.classList.toggle('active', show);
+                    localStorage.setItem(STORAGE_PREFIX + 'state', show);
+                    if(show) updatePos(pos.x, pos.y);
+                }
             });
 
-            function toggleMenu(forceState) {
-                const show = forceState !== undefined ? forceState : !menu.classList.contains('show');
-                menu.classList.toggle('show', show);
-                toggleBtn.classList.toggle('active', show);
-                LS.set(STORAGE_KEY_STATE, show);
-                if(show) updatePos(pos.x, pos.y); // Recalc menu pos
-            }
-
-            // Init
+            // INIT
             updatePos(pos.x, pos.y);
             renderMenu();
-            if(LS.get(STORAGE_KEY_STATE, false)) toggleMenu(true);
-
-            window.addEventListener('resize', () => updatePos(pos.x, pos.y));
-
+            if(localStorage.getItem(STORAGE_PREFIX + 'state') === 'true') {
+                menu.classList.add('show');
+                toggleBtn.classList.add('active');
+            }
+            
         })();
-    } catch(e) { console.error('[BR Panel] Error:', e); }
-
+    } catch (e) { console.error('[BR Script] Panel Error:', e); }
 
     // ========================================================================
-    // МОДУЛЬ 2: БЫСТРЫЕ ОТВЕТЫ (Fast Reply)
+    // МОДУЛЬ 2: КНОПКИ ОТВЕТА (ЧИСТЫЙ JS + HANDLEBARS)
     // ========================================================================
     try {
         (function () {
-            if (document.body.dataset.forumButtonsLoaded) return;
-            document.body.dataset.forumButtonsLoaded = 'true';
-
-            // --- ДАННЫЕ ДЛЯ ОТВЕТОВ ---
-            const UNACCEPT_PREFIX = 4;
-            const ODOBRENO_PREFIX = 8;
-            const PIN_PREFIX = 2;
-            const COMMAND_PREFIX = 10;
-            const CLOSE_PREFIX = 7;
-            const DECIDED_PREFIX = 6;
-            const TECHADM_PREFIX = 13;
-            const WATCHED_PREFIX = 9;
-            const WAIT_PREFIX = 14;
+            if (document.body.dataset.buttonsLoaded) return;
+            document.body.dataset.buttonsLoaded = 'true';
 
             const buttons = [
                 {
@@ -1238,84 +1205,106 @@
 },
 ];
 
-            // Основная логика
             const initButtons = () => {
-                $('body').append('<script src="https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js"></script>');
+                // Load Handlebars
+                const script = document.createElement('script');
+                script.src = "https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js";
+                document.head.appendChild(script);
                 
-                const addBtn = (name, id, hex) => {
-                    if($(`button#${id}`).length) return;
-                    $('.button--icon--reply').before(
-                        `<button type="button" class="button--primary button rippleButton" id="${id}" style="border-radius: 25px; margin-right: 5px; background-color: ${hex}">${name}</button>`
-                    );
+                const addBtn = (name, id, style) => {
+                    if(document.getElementById(id)) return;
+                    const btn = document.createElement('button');
+                    btn.className = 'button--primary button rippleButton';
+                    btn.id = id;
+                    btn.style.cssText = style;
+                    btn.textContent = name;
+                    
+                    const replyBtn = document.querySelector('.button--icon--reply');
+                    if(replyBtn) replyBtn.before(btn);
                 };
 
-                addBtn('На рассмотрение', 'pin', 'rgb(255, 165, 0)');
-                addBtn('КП', 'teamProject', 'rgb(255, 255, 0)');
-                addBtn('Рассмотрено', 'watched', 'rgb(0, 255, 0)');
-                addBtn('Отказано', 'unaccept', 'rgb(255, 0, 0)');
-                addBtn('Решено', 'decided', 'rgb(0, 255, 0)');
-                addBtn('Закрыто', 'closed', 'rgb(255, 0, 0)');
-                addBtn('Тех. спецу', 'techspec', 'rgb(0, 0, 255)');
-                addBtn('Одобрено', 'odobreno', 'rgb(128, 255, 128)');
+                // Вернул оригинальные стили
+                addBtn('На рассмотрение', 'pin', 'border-radius: 20px; margin-right: 11px; border: 2px solid; border-color: rgb(255, 165, 0);');
+                addBtn('КП', 'teamProject', 'border-radius: 20px; margin-right: 10px; border: 2px solid; border-color: rgb(255, 255, 0);');
+                addBtn('Рассмотрено', 'watched', 'border-radius: 13px; margin-right: 5px; border: 2px solid; border-color: rgb(0, 255, 0);');
+                addBtn('Отказано', 'unaccept', 'border-radius: 13px; margin-right: 5px; border: 2px solid; border-color: rgb(255, 0, 0);');
+                addBtn('Решено', 'decided', 'border-radius: 13px; margin-right: 5px; border: 2px solid; border-color: rgb(0, 255, 0);');
+                addBtn('Закрыто', 'closed', 'border-radius: 13px; margin-right: 5px; border: 2px solid; border-color: rgb(255, 0, 0);');
+                addBtn('Тех. спецу', 'techspec', 'border-radius: 13px; margin-right: 5px; border: 2px solid; border-color: rgb(0, 0, 255);');
+                addBtn('Одобрено', 'odobreno', 'border-radius: 13px; margin-right: 5px; border: 2px solid; border-color: rgb(128, 255, 128);');
                 
-                if(!$('button#selectAnswers').length) {
-                    $('.button--icon--reply').after(`<button type="button" class="button--cta uix_quickReply--button button button--icon button--icon--write rippleButton" id="selectAnswers" style="oswald: 3px; margin-left: 5px; margin-top: 1px; border-radius: 13px; background-color: #FF4500; border-color: #E6E6FA">Ответы</button>`);
+                // Select Answers
+                if(!document.getElementById('selectAnswers')) {
+                   const ansBtn = document.createElement('button');
+                   ansBtn.className = 'button--cta uix_quickReply--button button button--icon button--icon--write rippleButton';
+                   ansBtn.id = 'selectAnswers';
+                   ansBtn.style.cssText = 'oswald: 3px; margin-left: 5px; margin-top: 1px; border-radius: 13px; background-color: #FF4500; border-color: #E6E6FA';
+                   ansBtn.textContent = 'Ответы';
+                   const replyBtn = document.querySelector('.button--icon--reply');
+                   if(replyBtn) replyBtn.after(ansBtn);
                 }
 
-                // Handlers
-                const threadData = getThreadData();
+                // LISTENERS (Native JS)
+                const click = (id, fn) => {
+                    const el = document.getElementById(id);
+                    if(el) el.onclick = fn;
+                };
 
-                // Bindings
-                $('button#unaccept').click(() => editThreadData(UNACCEPT_PREFIX, false));
-                $('button#pin').click(() => editThreadData(PIN_PREFIX, true));
-                $('button#teamProject').click(() => editThreadData(COMMAND_PREFIX, true));
-                $('button#watched').click(() => editThreadData(WATCHED_PREFIX, false));
-                $('button#decided').click(() => editThreadData(DECIDED_PREFIX, false));
-                $('button#closed').click(() => editThreadData(CLOSE_PREFIX, false));
-                $('button#odobreno').click(() => editThreadData(ODOBRENO_PREFIX, false));
-                $('button#techspec').click(() => editThreadData(TECHADM_PREFIX, true));
+                click('unaccept', () => editThreadData(4, false));
+                click('pin', () => editThreadData(2, true));
+                click('teamProject', () => editThreadData(10, true));
+                click('watched', () => editThreadData(9, false));
+                click('decided', () => editThreadData(6, false));
+                click('closed', () => editThreadData(7, false));
+                click('odobreno', () => editThreadData(8, false));
+                click('techspec', () => editThreadData(13, true));
 
-                $(`button#selectAnswers`).click(() => {
-                    XF.alert(buttonsMarkup(buttons), null, 'Выберите ответ:');
-                    buttons.forEach((btn, id) => {
-                        $(`button#answers-${id}`).click(() => pasteContent(id, threadData, id > 6)); // id > 6 = send true? logic form original
-                    });
+                click('selectAnswers', () => {
+                    XF.alert(`<div class="select_answer">${buttons.map((btn, i) => 
+                        `<button id="answers-${i}" class="button--primary button rippleButton" style="margin:4px; border-radius: 13px;"><span class="button-text">${btn.title}</span></button>`
+                    ).join('')}</div>`, null, 'Выберите ответ:');
+                    
+                    // Wait for modal
+                    setTimeout(() => {
+                        buttons.forEach((btn, id) => {
+                            click(`answers-${id}`, () => pasteContent(id, id > 6));
+                        });
+                    }, 200);
                 });
             };
 
-            // Wait for jQuery
-            const waitJQ = setInterval(() => {
-                if(window.jQuery) {
-                    clearInterval(waitJQ);
+            const waitButtons = setInterval(() => {
+                if(document.querySelector('.button--icon--reply')) {
+                    clearInterval(waitButtons);
                     initButtons();
                 }
-            }, 300);
+            }, 500);
 
-
-            // --- Helpers ---
-            function buttonsMarkup(buttons) {
-                return `<div class="select_answer">${buttons.map((btn, i) => 
-                    `<button id="answers-${i}" class="button--primary button rippleButton" style="margin:4px; border-radius: 13px; ${btn.dpstyle || ''}"><span class="button-text">${btn.title}</span></button>`
-                ).join('')}</div>`;
-            }
-
-            function pasteContent(id, data = {}, send = false) {
+            function pasteContent(id, send = false) {
+                const threadData = getThreadData();
                 const template = Handlebars.compile(buttons[id].content);
-                if ($('.fr-element.fr-view p').text() === '') $('.fr-element.fr-view p').empty();
+                const content = template(threadData);
+                
+                const editor = document.querySelector('.fr-element.fr-view p');
+                if(editor) {
+                    editor.textContent = '';
+                    editor.innerHTML = content;
+                }
+                
+                const closer = document.querySelector('a.overlay-titleCloser');
+                if(closer) closer.click();
 
-                $('span.fr-placeholder').empty();
-                $('div.fr-element.fr-view p').append(template(data));
-                $('a.overlay-titleCloser').trigger('click');
-
-                if(send == true){
+                if(send) {
                     editThreadData(buttons[id].prefix, buttons[id].status);
-                    $('.button--icon.button--icon--reply.rippleButton').trigger('click');
+                    const reply = document.querySelector('.button--icon.button--icon--reply.rippleButton');
+                    if(reply) reply.click();
                 }
             }
 
             function getThreadData() {
-                const authorID = $('a.username')[0].attributes['data-user-id'].nodeValue;
-                const authorName = $('a.username').html();
+                const authorEl = document.querySelector('a.username');
+                const authorID = authorEl ? authorEl.getAttribute('data-user-id') : 0;
+                const authorName = authorEl ? authorEl.innerText : 'Player';
                 const hours = new Date().getHours();
                 return {
                     user: { id: authorID, name: authorName, mention: `[USER=${authorID}]${authorName}[/USER]` },
@@ -1323,8 +1312,10 @@
                 };
             }
 
-            function editThreadData(prefix, pin = false, may_lens = true) {
-                const threadTitle = $('.p-title-value')[0].lastChild.textContent;
+            function editThreadData(prefix, pin = false) {
+                const titleEl = document.querySelector('.p-title-value');
+                const threadTitle = titleEl ? titleEl.lastChild.textContent : 'Thread';
+                
                 const fd = new FormData();
                 fd.append('prefix_id', prefix);
                 fd.append('title', threadTitle);
@@ -1332,22 +1323,19 @@
                 fd.append('_xfRequestUri', document.URL.split(XF.config.url.fullBase)[1]);
                 fd.append('_xfWithData', 1);
                 fd.append('_xfResponseType', 'json');
-
                 if(pin) {
                     fd.append('discussion_open', 1);
                     fd.append('sticky', 1);
                 }
-
                 fetch(`${document.URL}edit`, { method: 'POST', body: fd }).then(() => location.reload());
 
-                if(may_lens === true) {
-                    if([WATCHED_PREFIX, CLOSE_PREFIX, DECIDED_PREFIX].includes(prefix)) moveThread(prefix, 230);
-                    if(prefix == WAIT_PREFIX) moveThread(prefix, 917);
-                }
+                if([9, 7, 6].includes(prefix)) moveThread(prefix, 230);
+                if(prefix == 14) moveThread(prefix, 917);
             }
 
             function moveThread(prefix, type) {
-                const threadTitle = $('.p-title-value')[0].lastChild.textContent;
+                const titleEl = document.querySelector('.p-title-value');
+                const threadTitle = titleEl ? titleEl.lastChild.textContent : 'Thread';
                 const fd = new FormData();
                 fd.append('prefix_id', prefix);
                 fd.append('title', threadTitle);
@@ -1360,11 +1348,9 @@
                 fd.append('_xfRequestUri', document.URL.split(XF.config.url.fullBase)[1]);
                 fd.append('_xfWithData', 1);
                 fd.append('_xfResponseType', 'json');
-
                 fetch(`${document.URL}move`, { method: 'POST', body: fd }).then(() => location.reload());
             }
 
         })();
-    } catch(e) { console.error('[BR Moderation] Error:', e); }
-
+    } catch(e) { console.error('[BR Script] Buttons Error:', e); }
 })();
