@@ -1,23 +1,5 @@
-// ==UserScript==
-// @name         Black Russia | Buttons + Navigation (Mix)
-// @namespace    https://forum.blackrussia.online
-// @version      8.0
-// @description  Рабочий скрипт кнопок + Навигационная панель переходов
-// @author       User & AI
-// @match        https://forum.blackrussia.online/*
-// @grant        GM_setValue
-// @grant        GM_getValue
-// @require      https://cdn.jsdelivr.net/npm/handlebars@latest/dist/handlebars.js
-// @license      MIT
-// ==/UserScript==
-
 (function () {
     'use strict';
-
-    // ===========================================================================================
-    // ЧАСТЬ 1: НАВИГАЦИОННАЯ ПАНЕЛЬ (ПЕРЕХОДЫ ПО СЕРВЕРАМ)
-    // Добавлено поверх кнопок, не затрагивая их логику
-    // ===========================================================================================
     try {
         (function() {
             const STORAGE_PREFIX = 'br_panel_mix_';
@@ -115,7 +97,6 @@
                 { text: 'CHEREPOVETS (89)', link: 'https://forum.blackrussia.online/forums/Технический-раздел-cherepovets.3978/', color: '#8B008B' },
             ];
 
-            // Ссылки на Жалобы на тех (Синий)
             const DATA_TECH_COMPLAINT = [
                 { text: 'RED (1)', link: 'https://forum.blackrussia.online/forums/Сервер-№1-red.1182/', color: '#0000CD' },
                 { text: 'GREEN (2)', link: 'https://forum.blackrussia.online/forums/Сервер-№2-green.1183/', color: '#0000CD' },
@@ -208,7 +189,6 @@
                 { text: 'CHEREPOVETS (89)', link: 'https://forum.blackrussia.online/forums/Сервер-№89-cherepovets.3946/', color: '#0000CD' },
             ];
 
-            // Ссылки на Жалобы на игроков (Красный)
             const DATA_PLAYER_COMPLAINT = [
                 { text: 'RED (1)', link: 'https://forum.blackrussia.online/forums/Жалобы-на-игроков.88/', color: '#DC143C' },
                 { text: 'GREEN (2)', link: 'https://forum.blackrussia.online/forums/Жалобы-на-игроков.119/', color: '#DC143C' },
@@ -421,7 +401,6 @@
                 setTimeout(() => overlay.classList.add('open'), 10);
             }
 
-            // UI SETUP
             const style = document.createElement('style');
             style.textContent = `
                 :root { --fnp-btn: 48px; }
@@ -523,11 +502,6 @@
         })();
     } catch (e) { console.error('[BR Script] Panel Error:', e); }
 
-
-    // ===========================================================================================
-    // ЧАСТЬ 2: ТВОЙ СКРИПТ (ОРИГИНАЛ, НЕ ТРОНУТ)
-    // Вставлен без изменений
-    // ===========================================================================================
 
 	if (document.body.dataset.forumButtonsLoaded) return;
     document.body.dataset.forumButtonsLoaded = 'true';
@@ -1340,7 +1314,6 @@
 	}
 
 	function editThreadData(prefix, pin = false, may_lens = true) {
-	// Получаем заголовок темы, так как он необходим при запросе
 	const threadTitle = $('.p-title-value')[0].lastChild.textContent;
 
 	if(pin == false){
@@ -1382,7 +1355,6 @@
 	}
 
 	function moveThread(prefix, type) {
-	// Перемещение темы
 	const threadTitle = $('.p-title-value')[0].lastChild.textContent;
 
 	fetch(`${document.URL}move`, {
