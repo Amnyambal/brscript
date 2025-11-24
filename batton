@@ -1,5 +1,24 @@
+// ==UserScript==
+// @name         BR Panel (Menu Only)
+// @namespace    http://tampermonkey.net/
+// @version      2.0
+// @description  Only floating menu with servers
+// @author       Black Russia
+// @match        https://forum.blackrussia.online/*
+// @grant        none
+// ==/UserScript==
+
 (function () {
     'use strict';
+
+    // --- ИСПРАВЛЕНИЕ ОШИБКИ ---
+    // Используем setAttribute вместо dataset с дефисами, чтобы избежать SyntaxError
+    if (document.body.getAttribute('data-br-script-injected-panel')) {
+        return;
+    }
+    document.body.setAttribute('data-br-script-injected-panel', 'true');
+    // ---------------------------
+
     try {
         (function() {
             const STORAGE_PREFIX = 'br_panel_mix_';
