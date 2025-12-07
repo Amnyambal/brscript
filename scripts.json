@@ -47,7 +47,7 @@
     },
     {
       "id": "forumSneg",
-      "name": "Снег + темная на форуме",
+      "name": "Снег + темная на форуме (не работает)",
       "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/forumsneg.js",
       "matches": [
         "https://forum.blackrussia.online/threads/*"
