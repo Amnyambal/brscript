@@ -46,6 +46,13 @@
       "enabledDefault": true
     },
     {
+      "id": "time",
+      "name": "Минимальное время автоматом за 7 месяцев",
+      "matches": ["https://logs.blackrussia.online/gslogs/*"],
+      "url": "https://raw.githubusercontent.com/Amnyambal/brscript/refs/heads/main/time",
+      "enabledDefault": true
+    },
+    {
       "id": "forumSneg",
       "name": "Снег + темная на форуме (не работает)",
       "url": "https://raw.githubusercontent.com/Amnyambal/brscript/main/forumsneg.js",
